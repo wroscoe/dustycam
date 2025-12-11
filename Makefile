@@ -16,3 +16,6 @@ stop:
 status:
 	sudo systemctl status $(SERVICE_NAME)
 
+install-cpu:
+	python3 -m venv .venv
+	.venv/bin/pip install . --extra-index-url https://download.pytorch.org/whl/cpu

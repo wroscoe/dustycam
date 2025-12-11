@@ -15,24 +15,37 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent"
 ]
-
 dependencies = [
     "requests",
     "opencv-contrib-python",
+    "ultralytics",
+    "pytest>=9.0.1",
+    # CPU-only PyTorch for Linux (Python 3.12)
+    "torch==2.5.1+cpu",
+    # Fallbacks / Standard Deps
+    "torch ; sys_platform != 'linux'",
+    "torchvision",
+    "torchaudio",
+    "google-genai",
+    "python-dotenv",
 ]
+
+[project.optional-dependencies]
+pi = [
+    "picamera2",
+]
+
 
 [project.urls]
 Homepage = "https://www.dustycam.com"
 
-
-[project.optional-dependencies]
-pi = [
-
-    ]
-
-dev = [
-    ]
-
 [project.entry-points.console_scripts]
-dustycam = "dustycam.commands:run"
+dustycam = "dustycam.app:run"
+
+[tool.setuptools.packages.find]
+include = ["dustycam"]
+exclude = ["data"]
+
+
+
 

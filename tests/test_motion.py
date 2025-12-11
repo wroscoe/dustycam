@@ -2,6 +2,10 @@ import os
 import cv2
 import time
 import datetime
+import pytest
+
+pytest.importorskip("picamera2")
+pytest.importorskip("libcamera")
 from picamera2 import Picamera2, Preview
 import libcamera
 
@@ -11,7 +15,7 @@ from logging import basicConfig, getLogger, INFO
 basicConfig(level=INFO)
 logger = getLogger(__name__)
 
-def detect_motion(picam2, low_res_config, high_res_config, action):
+def detect_motion(picam2, low_res_config, high_res_config, action, max_iterations: int | None = None):
     # Initialize the camera with low resolution configuration
     picam2.configure(low_res_config)
     #picam2.controls.set_controls( { "AfMode" : libcamera.controls.AfModeEnum.Continuous, "AfMetering" : libcamera.controls.AfMeteringEnum.Windows,  "AfWindows" : [ (768,432,1536,864) ] } )
@@ -30,6 +34,7 @@ def detect_motion(picam2, low_res_config, high_res_config, action):
     logger.info(f"Current lowres Camera 'controls': {current_controls}")
 
 
+    iterations = 0
     while True:
         # Capture the next frame
         frame2 = picam2.capture_array()
@@ -56,6 +61,10 @@ def detect_motion(picam2, low_res_config, high_res_config, action):
 
         # Exit if 'q' is pressed
         if cv2.waitKey(30) & 0xFF == ord('q'):
+            break
+
+        iterations += 1
+        if max_iterations is not None and iterations >= max_iterations:
             break
 
         time.sleep(.2)
@@ -93,35 +102,30 @@ def take_high_res_images(picam2, high_res_config, low_res_config, num_images=3):
 
 
 
-# Initialize Picamera2
-picam2 = Picamera2()
+def main():
+    """Run motion detection loop."""
+    # Initialize Picamera2
+    picam2 = Picamera2()
 
-#make directory in home folder to save images
-import os 
-folder_name = "dustycam_images"
-images_folder_path = os.path.expanduser(f'~/{folder_name}')
-os.makedirs(images_folder_path, exist_ok=True)
-print(f"Images will be saved in {os.path.expanduser(f'~/{folder_name}')}")
+    # make directory in home folder to save images
+    folder_name = "dustycam_images"
+    images_folder_path = os.path.expanduser(f'~/{folder_name}')
+    os.makedirs(images_folder_path, exist_ok=True)
+    print(f"Images will be saved in {os.path.expanduser(f'~/{folder_name}')}")
 
-# Configure low resolution for motion detection
-low_res_config = picam2.preview_configuration
-low_res_config.main.size = (320, 240)
-#low_res_config.main.format = "RGB888"
-low_res_config.controls.FrameRate = 30
-#low_res_config.controls.AfMode = libcamera.controls.AfModeEnum.Manual
-#low_res_config.controls.LensPosition = 0.0
+    # Configure low resolution for motion detection
+    low_res_config = picam2.preview_configuration
+    low_res_config.main.size = (320, 240)
+    low_res_config.controls.FrameRate = 30
+    logger.info(f"Camera 'controls' before start recording: {low_res_config.controls}")
 
-#low_res.controls.set_controls( { "AfMode" : libcamera.controls.AfModeEnum.Continuous, "AfMetering" : libcamera.controls.AfMeteringEnum.Windows,  "AfWindows" : [ (768,432,1536,864) ] } )
-logger.info(f"Camera 'controls' before start recording: {low_res_config.controls}")
+    # Configure high resolution for capturing images
+    high_res_config = picam2.still_configuration
+    high_res_config.main.size = (4056, 3040)  # Adjust the resolution as needed
 
-# Configure high resolution for capturing images
-high_res_config = picam2.still_configuration
-high_res_config.main.size = (4056, 3040)  # Adjust the resolution as needed
-#high_res_config.main.format = "RGB888"
-#high_res_config.controls.AfMode = libcamera.controls.AfModeEnum.Manual
-#high_res_config.controls.LensPosition = 0.0
+    # Start motion detection
+    detect_motion(picam2, low_res_config, high_res_config, take_high_res_images)
 
-# Start motion detection
-detect_motion(picam2, low_res_config, high_res_config, take_high_res_images)
 
-logger.warn("TEST")
+if __name__ == '__main__':
+    main()

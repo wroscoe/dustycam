@@ -1,3 +1,5 @@
+data/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -97,3 +99,10 @@ Thumbs.db
 *.swp
 *.swo
 .#*
+
+# PyTorch models
+*.pt
+
+*.json
+*.jpg
+*.png   
