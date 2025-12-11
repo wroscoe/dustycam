@@ -3,6 +3,10 @@ import time
 import cv2
 import numpy as np
 import logging
+import pytest
+
+pytest.importorskip("picamera2")
+pytest.importorskip("PyQt5")
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QSlider, QLabel, QPushButton, QCheckBox
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QImage, QPixmap, QPalette
