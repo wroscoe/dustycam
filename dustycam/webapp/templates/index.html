@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DustyCam Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+</head>
+<body>
+    <nav style="background: #000; padding: 15px; border-bottom: 1px solid #333;">
+        <a href="/" style="color: #fff; text-decoration: none; margin-right: 20px; font-weight: bold;">DustyCam Live</a>
+        <a href="/gallery" style="color: #fff; text-decoration: none; margin-right: 20px; font-weight: bold;">Recordings</a>
+    </nav>
+    <div class="container">
+    <h1>DustyCam Live (WebSocket)</h1>
+    
+    <div id="status-bar">Connecting...</div>
+
+    <div class="previews-grid" id="previews-container">
+        <!-- Previews will be dynamically injected/updated here -->
+    </div>
+
+    <!-- Metadata Panel -->
+    <div id="metadata-panel" style="margin-top: 10px; border: 1px solid #eee; padding: 5px;">
+        <h3>Metadata</h3>
+        <div id="metadata-content">No data</div>
+    </div>
+
+    <!-- Settings Panel -->
+    <div id="settings-panel" style="margin-top: 20px; border: 1px solid #ccc; padding: 10px;">
+        <h2>Settings</h2>
+        <div id="settings-form">Loading settings...</div>
+        <button onclick="saveSettings()">Save Settings</button>
+        <span id="save-status"></span>
+    </div>
+
+    <script>
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = protocol + '//' + window.location.host + '/ws';
+        let socket;
+        
+        const previewsContainer = document.getElementById('previews-container');
+        const metadataContent = document.getElementById('metadata-content');
+        const statusBar = document.getElementById('status-bar');
+
+        function connect() {
+            socket = new WebSocket(wsUrl);
+
+            socket.onopen = () => {
+                statusBar.innerText = "Connected";
+                statusBar.style.color = "green";
+            };
+
+            socket.onclose = () => {
+                statusBar.innerText = "Disconnected (Retrying...)";
+                statusBar.style.color = "red";
+                setTimeout(connect, 3000);
+            };
+            
+            socket.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+                
+                // Update Metadata
+                if (msg.meta) {
+                    renderMetadata(msg.meta);
+                }
+
+                // Update Images
+                if (msg.images) {
+                    for (const [name, dataUrl] of Object.entries(msg.images)) {
+                        let img = document.getElementById('img-' + name);
+                        if (!img) {
+                            // Create container if not exists
+                            const div = document.createElement('div');
+                            div.className = 'preview-item';
+                            div.innerHTML = `<h3>${name}</h3>`;
+                            
+                            img = document.createElement('img');
+                            img.id = 'img-' + name;
+                            img.alt = 'Live Stream - ' + name;
+                            img.style.maxWidth = "100%";
+                            
+                            div.appendChild(img);
+                            previewsContainer.appendChild(div);
+                        }
+                        img.src = dataUrl;
+                    }
+                }
+            };
+        }
+        
+        function renderMetadata(meta) {
+            let html = '<table style="width: 100%; border-collapse: collapse;">';
+            for (const [key, value] of Object.entries(meta)) {
+                html += `
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 8px; font-weight: bold; width: 150px;">${key}</td>
+                        <td style="padding: 8px;">${value}</td>
+                    </tr>
+                `;
+            }
+            html += '</table>';
+            metadataContent.innerHTML = html;
+        }
+
+        connect();
+
+        // Settings Logic (Existing)
+        let currentSettings = {};
+        let currentSchema = {};
+
+        async function loadSettings() {
+            try {
+                const response = await fetch('/api/settings');
+                const data = await response.json();
+                
+                if (data.error) {
+                    document.getElementById('settings-form').innerText = "Error: " + data.error;
+                    return;
+                }
+                
+                if (!data.schema) {
+                    document.getElementById('settings-form').innerText = "No configurable settings.";
+                    return;
+                }
+
+                currentSettings = data.values;
+                currentSchema = data.schema;
+                renderSettings(data.schema, data.values);
+
+            } catch (e) {
+                console.error(e);
+                document.getElementById('settings-form').innerText = "Failed to load settings.";
+            }
+        }
+
+        function renderSettings(schema, values) {
+            const container = document.getElementById('settings-form');
+            container.innerHTML = '';
+            
+            const properties = schema.properties || {};
+            const groups = {};
+            
+            // Group properties
+            for (const key in properties) {
+                const prop = properties[key];
+                const groupName = prop.group || "General";
+                if (!groups[groupName]) groups[groupName] = [];
+                groups[groupName].push({ key, ...prop });
+            }
+            
+            // Render groups
+            for (const groupName in groups) {
+                const groupDiv = document.createElement('div');
+                groupDiv.className = 'settings-group';
+                groupDiv.innerHTML = `<h3>${groupName}</h3>`;
+                
+                groups[groupName].forEach(field => {
+                    const row = document.createElement('div');
+                    row.className = 'settings-row';
+                    
+                    const label = document.createElement('label');
+                    label.innerText = field.key + ": ";
+                    label.htmlFor = field.key;
+                    
+                    let input;
+                    const val = values[field.key];
+                    
+                    if (field.type === 'boolean') {
+                        input = document.createElement('input');
+                        input.type = 'checkbox';
+                        input.checked = val;
+                    } else if (field.type === 'integer' || field.type === 'number') {
+                        input = document.createElement('input');
+                        input.type = 'number';
+                        input.value = val;
+                        if (field.min !== undefined) input.min = field.min;
+                        if (field.max !== undefined) input.max = field.max;
+                        if (field.step !== undefined) input.step = field.step;
+                    } else {
+                        input = document.createElement('input');
+                        input.type = 'text';
+                        input.value = val;
+                    }
+                    
+                    input.id = field.key;
+                    input.name = field.key;
+                    
+                    row.appendChild(label);
+                    row.appendChild(input);
+                    groupDiv.appendChild(row);
+                });
+                
+                container.appendChild(groupDiv);
+            }
+        }
+
+        async function saveSettings() {
+            const statusFn = document.getElementById('save-status');
+            statusFn.innerText = "Saving...";
+            
+            const newSettings = {};
+            const properties = currentSchema.properties || {};
+            
+            for (const key in properties) {
+                const input = document.getElementById(key);
+                if (!input) continue;
+                
+                const type = properties[key].type;
+                if (type === 'boolean') {
+                    newSettings[key] = input.checked;
+                } else if (type === 'integer') {
+                    newSettings[key] = parseInt(input.value);
+                } else if (type === 'number') {
+                    newSettings[key] = parseFloat(input.value);
+                } else {
+                    newSettings[key] = input.value;
+                }
+            }
+            
+            try {
+                const response = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newSettings)
+                });
+                const result = await response.json();
+                
+                if (result.status === 'ok') {
+                    let msg = "Saved!";
+                    if (result.restarted) msg += " (Pipeline Restarted)";
+                    statusFn.innerText = msg;
+                    // Reload values to be sure
+                    loadSettings();
+                } else {
+                    statusFn.innerText = "Error saving.";
+                }
+            } catch (e) {
+                console.error(e);
+                statusFn.innerText = "Failed to save.";
+            }
+        }
+        
+        // Init
+        loadSettings();
+    </script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+[Unit]
+Description=DustyCam WiFi Fallback Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+# We need root for nmcli typically, or a user with net admin privs
+ExecStart=/opt/dustycam/scripts/wifi_fallback.py
+Restart=no
+
+[Install]
+WantedBy=multi-user.target

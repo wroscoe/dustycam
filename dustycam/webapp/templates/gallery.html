@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DustyCam Gallery</title>
+    <link href="/static/style.css" rel="stylesheet">
+    <style>
+        .gallery-container {
+            display: flex;
+            height: calc(100vh - 60px);
+        }
+        .sidebar {
+            width: 250px;
+            background: #1a1a1a;
+            overflow-y: auto;
+            border-right: 1px solid #333;
+            padding: 10px;
+        }
+        .run-item {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #333;
+            color: #aaa;
+        }
+        .run-item:hover, .run-item.active {
+            background: #333;
+            color: #fff;
+        }
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .grid-item img {
+            width: 100%;
+            border-radius: 4px;
+            transition: transform 0.2s;
+        }
+        .grid-item img:hover {
+            transform: scale(1.05);
+        }
+        .timestamp {
+            font-size: 0.8em;
+            color: #888;
+        }
+        nav {
+            background: #000;
+            padding: 15px;
+            border-bottom: 1px solid #333;
+        }
+        nav a {
+            color: #fff;
+            text-decoration: none;
+            margin-right: 20px;
+            font-weight: bold;
+        }
+        nav a:hover {
+            color: #00d2ff;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="/">DustyCam Live</a>
+        <a href="/gallery">Recordings</a>
+    </nav>
+
+    <div class="gallery-container">
+        <div class="sidebar" id="sidebar">
+            <!-- Run list will be populated here -->
+            <div style="padding:10px;">Loading...</div>
+        </div>
+        <div class="main-content">
+            <h2 id="current-run-title">Select a Run</h2>
+            <div class="image-grid" id="image-grid">
+                <!-- Images will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let recordings = [];
+
+        async function loadRecordings() {
+            try {
+                const response = await fetch('/api/recordings');
+                recordings = await response.json();
+                renderSidebar();
+            } catch (e) {
+                console.error("Error loading recordings:", e);
+                document.getElementById('sidebar').innerHTML = '<div style="padding:10px; color:red;">Error loading runs</div>';
+            }
+        }
+
+        function renderSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.innerHTML = '';
+            
+            if (recordings.length === 0) {
+                sidebar.innerHTML = '<div style="padding:10px;">No recordings found</div>';
+                return;
+            }
+
+            recordings.forEach((run, index) => {
+                const div = document.createElement('div');
+                div.className = 'run-item';
+                // Convert timestamp to date string
+                const date = new Date(run.timestamp * 1000).toLocaleString();
+                div.innerHTML = `<div>${run.name}</div><div class="timestamp">${date}</div><div class="timestamp">${run.images.length} images</div>`;
+                div.onclick = () => selectRun(index);
+                sidebar.appendChild(div);
+            });
+        }
+
+        function selectRun(index) {
+            // Highlight active
+            const items = document.querySelectorAll('.run-item');
+            items.forEach(i => i.classList.remove('active'));
+            if(items[index]) items[index].classList.add('active');
+
+            const run = recordings[index];
+            document.getElementById('current-run-title').innerText = run.name;
+
+            const grid = document.getElementById('image-grid');
+            grid.innerHTML = '';
+            
+            run.images.forEach(imgUrl => {
+                const div = document.createElement('div');
+                div.className = 'grid-item';
+                // Ideally clickable to view full size
+                div.innerHTML = `<a href="${imgUrl}" target="_blank"><img src="${imgUrl}" loading="lazy"></a>`;
+                grid.appendChild(div);
+            });
+        }
+
+        loadRecordings();
+    </script>
+</body>
+</html>

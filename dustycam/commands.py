@@ -4,8 +4,10 @@ import time
 import glob
 from datetime import datetime
 from dustycam.utils.image_gen import generate_image_prompts, generate_image, detect_license_plates, plot_bounding_boxes
-from dustycam.utils.yolo_detect import run_yolo_detection
+from dustycam.nodes.yolo import load_yolo_model, detect_objects
 from dustycam.utils.oneshot import run_oneshot_workflow
+from dustycam.pipeline import get_pipeline_by_name
+import cv2
 
 
 def run_make(args):
@@ -13,12 +15,44 @@ def run_make(args):
 
 
 def run_yolo(args):
-    run_yolo_detection(
-        input_folder=args.input_folder,
-        output_dir=args.output_dir,
-        output_format=args.output_format,
-        model_path=args.model_path 
-    )
+    model = load_yolo_model(args.model_path)
+    if not model:
+        print("Failed to load model.")
+        return
+
+    input_folder = args.input_folder
+    output_dir = args.output_dir
+    
+    if output_dir and not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    # Find images
+    extensions = ['*.jpg', '*.jpeg', '*.png']
+    image_files = []
+    for ext in extensions:
+        image_files.extend(glob.glob(os.path.join(input_folder, ext)))
+        image_files.extend(glob.glob(os.path.join(input_folder, ext.upper())))
+        
+    print(f"Found {len(image_files)} images in {input_folder}")
+
+    from dustycam.nodes.drawing import draw_detections
+
+    for img_path in image_files:
+        print(f"Processing {img_path}...")
+        image = cv2.imread(img_path)
+        if image is None:
+            continue
+            
+        detections = detect_objects(image, model)
+        print(f"  Found {len(detections)} objects.")
+        
+        if output_dir:
+            # Draw and save
+            annotated_image = draw_detections(image, detections)
+            filename = os.path.basename(img_path)
+            out_path = os.path.join(output_dir, filename)
+            cv2.imwrite(out_path, annotated_image)
+            print(f"  Saved to {out_path}")
 
 def run_generate(args):
     # Determine output folder
@@ -65,6 +99,34 @@ def run_detect(args):
             print(f"No objects detected in {os.path.basename(img_path)}")
         time.sleep(1)
 
+def run_start(args):
+    import threading
+    import cv2
+    from dustycam.pipeline import get_pipeline_by_name
+    from dustycam.webapp import create_app
+
+    pipeline = get_pipeline_by_name(args.pipeline)
+
+    if not pipeline:
+        print(f"Unknown pipeline: {args.pipeline}")
+        return
+
+    # Start Pipeline
+    pipeline.start()
+    
+    # Pass pipeline to app
+    app = create_app(pipeline=pipeline)
+    
+    print("Starting Webapp on port 5000...")
+    import uvicorn
+    print("Starting Webapp on port 5000...")
+    try:
+        # Note: uvicorn.run blocks.
+        uvicorn.run(app, host='0.0.0.0', port=5000, log_level="info")
+    finally:
+        pipeline.stop()
+
+
 def main():
     parser = argparse.ArgumentParser(description="DustyCam Image Generator & Detector")
     subparsers = parser.add_subparsers(dest="command", required=True, help="Command to run")
@@ -93,6 +155,11 @@ def main():
     make_parser = subparsers.add_parser("make", help="Initialize a project from a description")
     make_parser.add_argument("prompt", type=str, help="Description of the camera model to build")
     make_parser.set_defaults(func=run_make)
+
+    # Start Command
+    start_parser = subparsers.add_parser("start", help="Start the camera application")
+    start_parser.add_argument("--pipeline", type=str, default="default", help="Pipeline configuration to run")
+    start_parser.set_defaults(func=run_start)
 
     args = parser.parse_args()
     args.func(args)

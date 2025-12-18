@@ -17,22 +17,21 @@ classifiers = [
 ]
 dependencies = [
     "requests",
-    "opencv-contrib-python",
     "ultralytics",
     "pytest>=9.0.1",
     # CPU-only PyTorch for Linux (Python 3.12)
-    "torch==2.5.1+cpu",
+    "torch",
     # Fallbacks / Standard Deps
     "torch ; sys_platform != 'linux'",
     "torchvision",
     "torchaudio",
     "google-genai",
     "python-dotenv",
+    "flask",
 ]
 
 [project.optional-dependencies]
 pi = [
-    "picamera2",
 ]
 
 

@@ -1,0 +1,16 @@
+[Unit]
+Description=DustyCam Motion Recorder
+After=network.target
+
+[Service]
+Type=simple
+User=dusty
+WorkingDirectory=/opt/dustycam
+ExecStart=/opt/dustycam/.venv/bin/dustycam start
+Restart=always
+RestartSec=5
+# Environment variables if needed, e.g. for libraries
+# Environment=LD_LIBRARY_PATH=...
+
+[Install]
+WantedBy=multi-user.target

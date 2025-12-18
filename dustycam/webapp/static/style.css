@@ -1,0 +1,23 @@
+body { background: #111; color: #eee; font-family: sans-serif; text-align: center; }
+.stream-container { margin: 20px; }
+img { border: 2px solid #444; max-width: 100%; }
+h1 { color: #4CAF50; }
+
+.previews-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+    padding: 20px;
+}
+
+.preview-item {
+    background: #222;
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.preview-item h3 {
+    margin: 0 0 10px 0;
+    font-size: 1.1em;
+    color: #acc;
+}

@@ -1,7 +1,4 @@
-from dustycam.commands import main
+from .commands import main as run
 
-def run():
-    main()
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     run()
