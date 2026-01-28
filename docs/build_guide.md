@@ -17,3 +17,8 @@ Optional Parts for Battery and Solar Support
 * 18650 Li-ion Battery (3.7V)
 * 12-24V Solar Panel (10W or higher)
 * [Tunable Buck Converter](https://amzn.to/4pgK8sr)
+
+
+
+* Power Input
+ - 24 VDC input. Barrel Connector ( What size?)
