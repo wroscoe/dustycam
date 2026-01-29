@@ -105,4 +105,4 @@ Thumbs.db
 
 *.json
 *.jpg
-*.png    
+*.png    yolov8n.onnx
