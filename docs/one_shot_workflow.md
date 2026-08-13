@@ -1,5 +1,10 @@
 # One Shot Workflow
 
+
+> **Status: design, not implemented.** The `dustycam make` command shown
+> below was a prototype CLI that has been removed. This document describes
+> the intended workflow, not a command you can run today.
+
 This is the workflow that DustyCam follows to create a camera model.
 
 ## Users command 

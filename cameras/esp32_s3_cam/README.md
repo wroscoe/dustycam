@@ -46,13 +46,11 @@ override:
 DATASET_ROOT=/somewhere/else make train
 ```
 
-Credentials come from `~/.dusty/` — see the [repo README](../../README.md).
-The board-side files are **generated**, not hand-written:
+Copy `software/src/secrets_example.py` to `software/src/secrets.py` and fill
+it in; the ESP-IDF app reads `software/persondet_app/sdkconfig.secrets`. Both
+are gitignored, as is the generated `sdkconfig`. Keep the master values in
+`~/.dusty/` — see the [repo README](../../README.md).
 
-```bash
-dusty generate esp32_s3_cam    # writes src/secrets.py + persondet_app/sdkconfig.secrets
-```
-
-`make deploy` runs that for you before copying to flash. Both outputs are
-mode 0600 and gitignored, as is the ESP-IDF-generated `sdkconfig`. Edit
-`~/.dusty/secrets.toml` and regenerate — never edit the generated files.
+`make deploy` copies `src/secrets.py` to flash if it exists. Note
+`boot_cam.py` starts WebREPL only when `WEBREPL_PASS` is set, so an
+incomplete secrets.py silently leaves WebREPL off.

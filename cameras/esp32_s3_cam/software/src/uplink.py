@@ -1,6 +1,6 @@
 """WiFi + HTTP upload of pending images to the local collection server.
 
-Credentials/server in secrets.py, generated from ~/.dusty/ by `dusty generate`.
+Credentials/server in secrets.py (copy secrets_example.py; never committed).
 """
 import socket
 import time

@@ -30,16 +30,12 @@ cd software
 
 ## Credentials
 
-Credentials come from `~/.dusty/` — see the [repo README](../../README.md).
-`software/secrets.py` is **generated** from it and gitignored:
-
-```bash
-dusty generate openmv_n6
-```
+Copy `software/secrets_example.py` to `software/secrets.py` and fill it in;
+it is gitignored. Keep the master values in `~/.dusty/` — see the
+[repo README](../../README.md).
 
 It carries the WiFi credentials, sensorhub host/port, MQTT login and the OTA
 token, and is deployed to `/flash/secrets.py` on the board — the same
 convention the ESP32-S3 camera uses. Note `secrets.py` is *not* OTA-managed:
-after regenerating, `mpremote cp` it to `/flash` and reset, or the app runs
-stale config. Edit `~/.dusty/secrets.toml` and regenerate — never edit the
-generated file.
+after editing, `mpremote cp` it to `/flash` and reset, or the app runs stale
+config.

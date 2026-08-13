@@ -6,7 +6,7 @@ Usage: ./ota_push.py [file] [--ip CAMERA_IP]
 Default file is sensorhub_cam.py. The camera IP is auto-discovered from the
 "ip" field the app reports in its sensorhub upload metadata; pass --ip for a
 camera that has never uploaded (e.g. sitting in recovery mode after a WiFi
-change). Token/port come from ~/.dusty/ (or the generated secrets.py beside this script).
+change). Token/port come from secrets.py next to this script.
 
 After the push the camera compile-checks, swaps app.py (keeping the old one
 as app_prev.py for automatic rollback), and reboots; this script then polls
@@ -26,21 +26,10 @@ DB = Path.home() / 'code/sensorhub/data/sensorhub.db'
 
 
 def load_secrets():
-    """OTA settings, from ~/.dusty/ when available.
-
-    Falls back to the generated secrets.py next to this script so the tool
-    still runs standalone (no install, or from a checkout without the
-    `dusty` package importable).
-    """
-    try:
-        from dusty.generate import TARGETS, flatten
-        from dusty.config import load
-        cfg = load(camera='openmv_n6')
-        return flatten(cfg, TARGETS['openmv_n6']['sections'])
-    except Exception:
-        ns = {}
-        exec((HERE / 'secrets.py').read_text(), ns)
-        return ns
+    """OTA settings from secrets.py next to this script (hand-maintained)."""
+    ns = {}
+    exec((HERE / 'secrets.py').read_text(), ns)
+    return ns
 
 
 def discover_ip(device):

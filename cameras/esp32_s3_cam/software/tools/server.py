@@ -12,22 +12,11 @@ import pathlib
 import sys
 import time
 
-# Dataset lives outside the repo (bulk storage). Resolution order:
-# DATASET_ROOT env var (set by the containerized make targets), then
-# ~/.dusty/config.toml [paths] dataset_root, then this default.
-def _dataset_root():
-    env = os.environ.get('DATASET_ROOT')
-    if env:
-        return env
-    try:
-        from dusty.config import load
-        return load(required=False).get('paths', {}).get('dataset_root') \
-            or '/hd2/datasets/wavesharecam'
-    except Exception:
-        return '/hd2/datasets/wavesharecam'
+# Dataset lives outside the repo (bulk storage).
+# Override with the DATASET_ROOT env var (the containerized make targets set it).
+DATASET_ROOT = pathlib.Path(
+    os.environ.get('DATASET_ROOT', '/hd2/datasets/wavesharecam'))
 
-
-DATASET_ROOT = pathlib.Path(_dataset_root())
 OUT = DATASET_ROOT / 'incoming'
 
 

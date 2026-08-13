@@ -15,21 +15,9 @@ from PIL import Image
 from ultralytics import YOLO
 
 # Dataset lives outside the repo (bulk storage). Resolution order:
-# DATASET_ROOT env var (set by the containerized make targets), then
-# ~/.dusty/config.toml [paths] dataset_root, then this default.
-def _dataset_root():
-    env = os.environ.get('DATASET_ROOT')
-    if env:
-        return env
-    try:
-        from dusty.config import load
-        return load(required=False).get('paths', {}).get('dataset_root') \
-            or '/hd2/datasets/wavesharecam'
-    except Exception:
-        return '/hd2/datasets/wavesharecam'
-
-
-DATASET_ROOT = _dataset_root()
+# Override with the DATASET_ROOT env var (the containerized make
+# targets set it).
+DATASET_ROOT = os.environ.get('DATASET_ROOT', '/hd2/datasets/wavesharecam')
 
 SAMPLES = sys.argv[1] if len(sys.argv) > 1 else os.path.join(DATASET_ROOT, 'samples')
 OUT = sys.argv[2] if len(sys.argv) > 2 else os.path.join(DATASET_ROOT, 'labels.csv')

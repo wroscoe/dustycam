@@ -11,11 +11,7 @@ test:             ## host-side unit tests (no board needed)
 
 SRC = src/boardcam.py src/brightness.py src/app.py src/storage.py src/uplink.py src/logger_app.py
 
-secrets:          ## regenerate src/secrets.py from ~/.dusty/ (source of truth)
-	@dusty generate esp32_s3_cam 2>/dev/null \
-	  || echo "note: \`dusty\` not on PATH - using existing src/secrets.py"
-
-deploy: secrets   ## copy src/ modules to board flash (NOT main.py)
+deploy:           ## copy src/ modules to board flash (NOT main.py)
 	$(MP) cp $(SRC) :
 	@test -f src/secrets.py && PORT=$(PORT) tools/mp cp src/secrets.py : || echo "note: src/secrets.py missing - WiFi upload disabled"
 

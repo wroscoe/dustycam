@@ -8,31 +8,23 @@ This project is focused on making it very easy to create special purpose AI came
 The project aims to provide reasonable defaults to accomplish the users goals while also allowing for customization and extension.
 
 
-## The One Shot Workflow
+## The One Shot Workflow — the goal, not yet a command
 
-Wildlife camera model.
-```bash
-dustycam make "A camera model that recognizes typical wyoming big game animals, people, vehicles, dogs, and cats. This model should be small enough to run at 5 frames per second on a Raspberry Pi 5."
-``` 
+The intended end state: describe what the camera should detect, and the
+project handles the rest.
 
-License plate detector.
-```bash
-dustycam make "A camera model that reads license plates from passing cars on a city street. This model should be small enough to run at 5 frames per second on a Raspberry Pi 5."
-``` 
+1. Define what to detect (wildlife, people, vehicles, license plates, …).
+2. Generate training data for those subjects and scenes.
+3. Finetune a model on the generated dataset.
+4. Define and test a pipeline for the camera — when to shoot, how to
+   process, where to store.
+5. Quantize the model for the target board (Raspberry Pi, or an AI-capable
+   microcontroller).
 
-## What DustyCam does behind the scenes. 
-
-1. Defines what the user wants the camera to detect (ie wildlife, people, vehicles, license plates, etc).
-
-2. Generates training data based on what the user wants to detect and scene.
-
-3. Finetunes a model on the generated dataset.
-
-4. Defines and tests a pipeline to run on the camera. This includes logic about when to take photos, how to process them, and how to store them.
-
-5. Quantizes the model to run on the target camera (ie. to a Raspberry Pi or AI enabled microcontroller).
-
-See a detailed description of the workflow in the [docs](docs/one_shot_workflow.md).
+See [docs/one_shot_workflow.md](docs/one_shot_workflow.md) for the full
+design. **There is no `dustycam` command today** — an earlier prototype CLI
+was removed; steps 2-3 currently run as the per-camera tooling under
+`cameras/<camera>/software/tools/` (see the ESP32-S3 teacher-student loop).
 
 
 ## Repository layout
@@ -71,37 +63,25 @@ hidden folder in your home directory:
 └── secrets.toml   (0600) WiFi, MQTT, OTA tokens, Google API key
 ```
 
-Create it, then fill in `secrets.toml`:
+`~/.dusty/` is the master copy you maintain by hand — one place to look when
+a password changes. Keep `secrets.toml` mode 0600.
 
-```bash
-dusty init                    # write both files from templates
-dusty show                    # print the merged config, secrets redacted
-dusty generate --all          # write each board's credential files
-```
+**Microcontrollers cannot read `~/.dusty/`**, so each board needs its own copy
+of the values it uses. These are gitignored; copy the matching `*_example.py`
+and fill it in from `~/.dusty/`:
 
-Both files are merged into one view, with `secrets.toml` winning on conflict
-and `[camera.<name>]` sections scoping settings to one camera. A
-`DUSTY_<SECTION>_<KEY>` environment variable overrides both, and `DUSTY_HOME`
-relocates the folder. `secrets.toml` must be mode 0600 — the loader refuses to
-read it otherwise.
+| Board file | From template | For |
+|---|---|---|
+| `cameras/esp32_s3_cam/software/src/secrets.py` | `secrets_example.py` | MicroPython, copied to board flash |
+| `cameras/esp32_s3_cam/software/persondet_app/sdkconfig.secrets` | `sdkconfig.defaults` | compiled into ESP-IDF firmware |
+| `cameras/openmv_n6/software/secrets.py` | `secrets_example.py` | MicroPython, copied to `/flash` |
 
-**Microcontrollers cannot read `~/.dusty/`**, so the files they *can* read are
-generated from it by `dusty generate`:
+Give each board only the credentials it uses — the ESP32 has no MQTT client,
+so it has no business holding the MQTT password.
 
-| Generated file | For |
-|---|---|
-| `cameras/esp32_s3_cam/software/src/secrets.py` | MicroPython, copied to board flash |
-| `cameras/esp32_s3_cam/software/persondet_app/sdkconfig.secrets` | compiled into ESP-IDF firmware |
-| `cameras/openmv_n6/software/secrets.py` | MicroPython, copied to `/flash` |
-
-All three are mode 0600 and gitignored. Treat them as build artifacts: edit
-`~/.dusty/secrets.toml` and regenerate, never edit them directly. Each camera
-receives only the credentials it needs — the ESP32 board has no MQTT client,
-so it never gets the MQTT password.
-
-Host-side code reads `~/.dusty/` directly (`from dusty.config import load`),
-so the toolchain's `GOOGLE_API_KEY` and the dataset path come from the same
-place. An existing `GOOGLE_API_KEY` environment variable still wins.
+Two things to remember when a credential changes: the board copies do **not**
+update themselves (re-deploy them), and the ESP-IDF `sdkconfig` is regenerated
+from `sdkconfig.secrets` at build time, so it is gitignored too.
 
 Docs are centralized in `docs/`; the only documentation that stays out of it is
 the README next to each hardware design directory, which describes the files

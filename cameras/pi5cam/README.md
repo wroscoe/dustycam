@@ -29,13 +29,6 @@ from pi5cam.nodes.sinks.web import WebSink
 `create_source()` auto-selects Picamera2 on a Pi and OpenCV elsewhere, so the
 same graph runs on a desktop for development.
 
-The same package holds the model-building toolchain behind the `dustycam` CLI
-(`pi5cam.commands`, `pi5cam.utils`):
-
-```bash
-dustycam make "A camera model that recognizes Wyoming big game at 5 fps on a Pi 5."
-```
-
 Install from the repo root, which holds the `pyproject.toml`:
 
 ```bash
