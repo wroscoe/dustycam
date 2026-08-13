@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# mpremote wrapper for the Waveshare ESP32-S3-CAM.
+#
+# This board's USB-CDC refuses raw-REPL entry if poked too soon after a
+# previous session (needs ~5s of quiet). mpremote surfaces that as
+# "could not enter raw repl". We just retry with a pause — makes every
+# make target reliable at the cost of a few seconds on a cold start.
+set -u
+PORT="${PORT:-$(python3 "$(dirname "$0")/findport.py")}"
+MP="$(dirname "$0")/../.venv/bin/mpremote"
+TRIES=4
+
+for i in $(seq 1 $TRIES); do
+    "$MP" connect "$PORT" "$@"
+    rc=$?
+    [ $rc -eq 0 ] && exit 0
+    if [ $i -lt $TRIES ]; then
+        echo "[mp] attempt $i failed (rc=$rc), retrying in 5s..." >&2
+        sleep 5
+    fi
+done
+echo "[mp] giving up after $TRIES attempts" >&2
+exit $rc

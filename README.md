@@ -35,35 +35,85 @@ dustycam make "A camera model that reads license plates from passing cars on a c
 See a detailed description of the workflow in the [docs](docs/one_shot_workflow.md).
 
 
+## Repository layout
 
-## Build Your Own DustyCam
-Here's the hardware you need to get started.
+| Path | Contents |
+|---|---|
+| [`docs/`](docs/) | All documentation: build guides, the one-shot workflow, architecture notes and plans. |
+| [`cameras/`](cameras/) | One directory per camera. Each owns its `hardware/`, `software/`, and `tests/`. |
+| [`server/`](server/) | Base station / ingest side — the thing cameras report *to*. Not yet implemented. |
+| `yolov8n_saved_model/`, `*.npy` | Project-level data: exported models and quantization calibration samples. |
 
-- Raspberry Pi 5
-- Raspberry Pi Camera (Module HQ recommended)
-- microSD Card (16GB or larger)
-- 3D Printed Case
+### Cameras
 
-* Additional hardware can enable battery and solar support. See Build Guide for details.
+| Camera | Board | Software |
+|---|---|---|
+| [`pi5cam/`](cameras/pi5cam/) | Raspberry Pi 5 / Pi Zero 2 W | Linux + CPython; the node/pipeline runtime and the `dustycam` CLI |
+| [`esp32_s3_cam/`](cameras/esp32_s3_cam/) | Waveshare ESP32-S3-CAM | MicroPython logger + an ESP-IDF person-detection app (TFLite-micro) |
+| [`openmv_n6/`](cameras/openmv_n6/) | OpenMV N6 | MicroPython uploader with motion gating, MQTT telemetry, WiFi OTA |
 
-## Install On Your Pi
+Each owns its `hardware/`, `software/`, and `tests/`. A new camera means a new
+directory under `cameras/`, not a fork of an existing one.
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e ".[pi]"  # base + Pi camera deps
-python3 src/dustycam/simple_capture.py # Example usage
+Bulk data stays out of the repo: the ESP32-S3 training set lives at
+`/hd2/datasets/wavesharecam/`.
+
+
+## Configuration and secrets — `~/.dusty/`
+
+Nothing sensitive lives in this repo. Settings and credentials live in a
+hidden folder in your home directory:
+
+```
+~/.dusty/                 (0700)
+├── config.toml           non-secret settings: server host, dataset paths,
+│                         per-camera tuning knobs
+└── secrets.toml   (0600) WiFi, MQTT, OTA tokens, Google API key
 ```
 
-Or run the helper script: `./install.sh`
+Create it, then fill in `secrets.toml`:
 
-**Note:** By default, this installs the CPU-only version of PyTorch to save space. 
-To install with CUDA/GPU support:
-`./install.sh --gpu`
+```bash
+dusty init                    # write both files from templates
+dusty show                    # print the merged config, secrets redacted
+dusty generate --all          # write each board's credential files
+```
 
-## Add system service: Setup pi to take photos when there is motion.
+Both files are merged into one view, with `secrets.toml` winning on conflict
+and `[camera.<name>]` sections scoping settings to one camera. A
+`DUSTY_<SECTION>_<KEY>` environment variable overrides both, and `DUSTY_HOME`
+relocates the folder. `secrets.toml` must be mode 0600 — the loader refuses to
+read it otherwise.
 
-See install-service.sh
+**Microcontrollers cannot read `~/.dusty/`**, so the files they *can* read are
+generated from it by `dusty generate`:
+
+| Generated file | For |
+|---|---|
+| `cameras/esp32_s3_cam/software/src/secrets.py` | MicroPython, copied to board flash |
+| `cameras/esp32_s3_cam/software/persondet_app/sdkconfig.secrets` | compiled into ESP-IDF firmware |
+| `cameras/openmv_n6/software/secrets.py` | MicroPython, copied to `/flash` |
+
+All three are mode 0600 and gitignored. Treat them as build artifacts: edit
+`~/.dusty/secrets.toml` and regenerate, never edit them directly. Each camera
+receives only the credentials it needs — the ESP32 board has no MQTT client,
+so it never gets the MQTT password.
+
+Host-side code reads `~/.dusty/` directly (`from dusty.config import load`),
+so the toolchain's `GOOGLE_API_KEY` and the dataset path come from the same
+place. An existing `GOOGLE_API_KEY` environment variable still wins.
+
+Docs are centralized in `docs/`; the only documentation that stays out of it is
+the README next to each hardware design directory, which describes the files
+sitting beside it.
+
+
+## Build Your Own DustyCam
+
+The Raspberry Pi 5 build is the reference camera — BOM, case CAD, carrier PCB
+and the optics/power sizing math are in
+[`cameras/pi5cam/hardware/`](cameras/pi5cam/hardware/), and the step-by-step
+walkthrough is [`docs/pi5_build_guide.md`](docs/pi5_build_guide.md).
 
 
 ## Test software on your computer.
@@ -75,9 +125,7 @@ source .venv/bin/activate
 pip install -e .  # no [pi] extra
 pip install pytest
 
-# Example dev runs
-python3 -m dustycam.simple_capture --help
-pytest
+pytest cameras/pi5cam/tests
 ```
 
 

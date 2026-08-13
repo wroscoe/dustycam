@@ -40,11 +40,18 @@ pi = [
 Homepage = "https://www.dustycam.com"
 
 [project.entry-points.console_scripts]
-dustycam = "dustycam.app:run"
+dustycam = "pi5cam.app:run"
+dusty = "dusty.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["dustycam"]
-exclude = ["data"]
+# Two roots: the shared host-side library at the repo root, and the camera's
+# own package. Each camera under cameras/ owns its software package.
+where = [".", "cameras/pi5cam/software"]
+include = ["dusty*", "pi5cam*"]
+exclude = ["data*"]
+# Required: pyproject's find defaults to namespaces=true, which would otherwise
+# sweep up non-package dirs (scripts/, assets/) as namespace packages.
+namespaces = false
 
 
 

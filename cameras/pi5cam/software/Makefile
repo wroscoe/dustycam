@@ -1,0 +1,24 @@
+
+SERVICE_NAME = "dusty.service"
+
+logs:
+	sudo journalctl -u $(SERVICE_NAME) -f
+
+start:
+	sudo systemctl start $(SERVICE_NAME)
+
+restart:
+	sudo systemctl restart $(SERVICE_NAME)
+
+stop:
+	sudo systemctl stop $(SERVICE_NAME)
+
+status:
+	sudo systemctl status $(SERVICE_NAME)
+
+# pyproject.toml lives at the repo root (two package roots: dustycam + pi5cam)
+REPO_ROOT = ../../..
+
+install-cpu:
+	python3 -m venv .venv
+	.venv/bin/pip install $(REPO_ROOT) --extra-index-url https://download.pytorch.org/whl/cpu

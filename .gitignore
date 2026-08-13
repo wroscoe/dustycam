@@ -106,3 +106,10 @@ Thumbs.db
 *.json
 *.jpg
 *.png    yolov8n.onnx
+
+# Device credentials — deployed to boards, never committed.
+# (secrets_example.py / sdkconfig.defaults are the safe templates and DO get tracked.)
+secrets.py
+sdkconfig.secrets
+# ESP-IDF: regenerated from sdkconfig.defaults + sdkconfig.secrets, embeds credentials
+sdkconfig
