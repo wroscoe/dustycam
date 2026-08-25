@@ -113,3 +113,12 @@ secrets.py
 sdkconfig.secrets
 # ESP-IDF: regenerated from sdkconfig.defaults + sdkconfig.secrets, embeds credentials
 sdkconfig
+
+# ESP-IDF regenerables (dependencies.lock pins them)
+managed_components/
+# archived databases / firmware binaries ride on disk, not in git
+*.db
+*.uf2
+*.bin
+*.npy
+sdkconfig.old

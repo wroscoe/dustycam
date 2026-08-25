@@ -33,15 +33,24 @@ was removed; steps 2-3 currently run as the per-camera tooling under
 |---|---|
 | [`docs/`](docs/) | All documentation: build guides, the one-shot workflow, architecture notes and plans. |
 | [`cameras/`](cameras/) | One directory per camera. Each owns its `hardware/`, `software/`, and `tests/`. |
-| [`server/`](server/) | Base station / ingest side — the thing cameras report *to*. Not yet implemented. |
+| [`sensors/`](sensors/) | Non-camera sensor devices: `plantlogger/` (FeatherS3 soil sensor) and `miclogger/` (XIAO S3 Sense continuous mic). |
+| [`mesh/`](mesh/) | LoRa / MeshCore device side: radio firmware images + hardware notes (T114, Heltec V4). |
+| [`tools/configurator/`](tools/configurator/) | Static webapp for weighing power × compute × optics × battery across candidate camera builds. |
+| [`server/`](server/) | Base station / ingest side — the thing cameras report *to*. In practice this is **sensorhub** (`~/code/sensorhub`, MQTT + blob ingest + pages UI); this dir holds only design notes. |
 | `yolov8n_saved_model/`, `*.npy` | Project-level data: exported models and quantization calibration samples. |
+
+**Ownership rule (2026-08-25):** every *device* — camera, sensor, or mesh
+radio: firmware, hardware notes, deploy scripts — lives here. Everything
+*server-side* (ingest, storage, pages, OTA staging) lives in sensorhub. The
+deploy scripts stage OTA firmware into `/hd2/sensorhub/firmware/`, which
+sensorhub's ingest serves to the boards.
 
 ### Cameras
 
 | Camera | Board | Software |
 |---|---|---|
 | [`pi5cam/`](cameras/pi5cam/) | Raspberry Pi 5 / Pi Zero 2 W | Linux + CPython; the node/pipeline runtime and the `dustycam` CLI |
-| [`esp32_s3_cam/`](cameras/esp32_s3_cam/) | Waveshare ESP32-S3-CAM | MicroPython logger + an ESP-IDF person-detection app (TFLite-micro) |
+| [`esp32_s3_cam/`](cameras/esp32_s3_cam/) | Waveshare ESP32-S3-CAM + GOOUUU ESP32-S3-CAM | MicroPython logger + an ESP-IDF person-detection app (TFLite-micro); `software/camlogger/` = the deployed goouuu1 ESP-IDF firmware (posts frames to sensorhub, OTA via `/hd2/sensorhub/firmware/`) |
 | [`openmv_n6/`](cameras/openmv_n6/) | OpenMV N6 | MicroPython uploader with motion gating, MQTT telemetry, WiFi OTA |
 
 Each owns its `hardware/`, `software/`, and `tests/`. A new camera means a new

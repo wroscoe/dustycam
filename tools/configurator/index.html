@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DustyCam Configurator</title>
+<style>
+  :root {
+    --surface-1: #fcfcfb;
+    --page: #f9f9f7;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #898781;
+    --hairline: #e1e0d9;
+    --baseline: #c3c2b7;
+    --border: rgba(11,11,11,0.10);
+    --series-1: #2a78d6;
+    --dim: #cfcec6;
+    --good: #0ca30c;
+    --warning: #fab219;
+    --critical: #d03b3b;
+    --good-text: #006300;
+    --warning-text: #8a5c00;
+    --critical-text: #d03b3b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface-1: #1a1a19;
+      --page: #0d0d0d;
+      --text-primary: #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted: #898781;
+      --hairline: #2c2c2a;
+      --baseline: #383835;
+      --border: rgba(255,255,255,0.10);
+      --series-1: #3987e5;
+      --dim: #3a3a37;
+      --good-text: #0ca30c;
+      --warning-text: #fab219;
+      --critical-text: #e66767;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--text-primary);
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  header { padding: 20px 24px 4px; }
+  header h1 { margin: 0; font-size: 20px; font-weight: 650; }
+  header p { margin: 4px 0 0; color: var(--text-secondary); max-width: 62em; }
+  main { padding: 16px 24px 40px; display: grid; grid-template-columns: 300px 1fr; gap: 16px; align-items: start; }
+  main > section { min-width: 0; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+
+  .card {
+    min-width: 0;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .card h2 { margin: 0 0 12px; font-size: 13px; font-weight: 650; color: var(--text-secondary); }
+  .card h3 { margin: 18px 0 8px; font-size: 12px; font-weight: 600; color: var(--text-muted); }
+
+  /* controls */
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 3px; }
+  .field select, .field input[type=number] {
+    width: 100%; padding: 6px 8px; border: 1px solid var(--hairline); border-radius: 6px;
+    background: var(--surface-1); color: var(--text-primary); font: inherit;
+  }
+  .field input[type=range] { width: 100%; }
+  .field .rangeval { color: var(--text-primary); font-weight: 600; }
+  .field .hint { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .two { display: grid; grid-template-columns: 1.5fr 1fr; gap: 8px; }
+
+  /* stat tiles */
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; }
+  .tile .label { font-size: 12px; color: var(--text-secondary); }
+  .tile .value { font-size: 21px; font-weight: 600; margin-top: 2px; }
+  .tile .value .unit { font-size: 13px; font-weight: 500; color: var(--text-muted); margin-left: 2px; }
+  .tile .sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  /* meter */
+  .meter-row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; gap: 12px; flex-wrap: wrap; }
+  .meter-row .status { font-weight: 650; }
+  .meter-track { height: 12px; border-radius: 6px; overflow: hidden; }
+  .meter-fill { height: 100%; border-radius: 6px; transition: width .25s ease; }
+  .meter-scale { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  .status-good     { color: var(--good-text); }
+  .status-warning  { color: var(--warning-text); }
+  .status-critical { color: var(--critical-text); }
+
+  /* verdict chips */
+  .chip {
+    display: inline-flex; align-items: baseline; gap: 6px; margin-top: 14px;
+    border: 1px solid var(--hairline); border-radius: 999px; padding: 4px 12px; font-size: 12.5px;
+    color: var(--text-secondary); background: var(--surface-1);
+  }
+  .chip b { color: var(--text-primary); font-weight: 600; }
+
+  /* charts */
+  .chart { position: relative; margin-top: 4px; max-width: 680px; }
+  .charts2 { display: grid; grid-template-columns: 1fr; gap: 8px 28px; margin-top: 18px; }
+  .charts2 > div { display: flex; flex-direction: column; min-width: 0; }
+  .charts2 h3 { margin-top: 0; }
+  .charts2 .chart { margin-top: auto; }
+  @media (min-width: 1220px) { .charts2 { grid-template-columns: 1fr 1fr; } }
+  .chart svg { width: 100%; height: auto; display: block; }
+  .chart .axis-label { font-size: 11px; fill: var(--text-muted); }
+  .chart .cat-label { font-size: 12px; fill: var(--text-secondary); }
+  .chart .end-label { font-size: 11.5px; font-weight: 600; fill: var(--text-primary); }
+  .chart .note-label { font-size: 11px; fill: var(--text-secondary); }
+  .chart-sub { font-size: 11px; color: var(--text-muted); margin: 2px 0 6px; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--text-secondary); margin: 0 0 6px; }
+  .legend .k { display: inline-block; width: 14px; border-top: 3px solid; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+  .tip {
+    position: absolute; pointer-events: none; z-index: 5; display: none; min-width: 130px;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.14); padding: 7px 10px; font-size: 12px;
+  }
+  .tip .t-title { color: var(--text-muted); font-size: 11px; margin-bottom: 3px; }
+  .tip .t-row { display: flex; align-items: baseline; gap: 7px; margin-top: 1px; }
+  .tip .t-key { width: 12px; height: 0; border-top: 3px solid var(--series-1); border-radius: 2px; flex: none; }
+  .tip .t-val { font-weight: 650; color: var(--text-primary); }
+  .tip .t-lab { color: var(--text-secondary); }
+
+  /* plate previews */
+  .plates { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+  .plate-tile { border: 1px solid var(--hairline); border-radius: 10px; padding: 10px 10px 8px; text-align: center; background: var(--surface-1); }
+  .plate-tile.target { border: 2px solid var(--series-1); padding: 9px 9px 7px; }
+  .plate-tile .tag { font-size: 10.5px; font-weight: 650; letter-spacing: .02em; margin-bottom: 5px; color: var(--series-1); }
+  .plate-tile .tag.limit { color: var(--text-muted); font-weight: 600; }
+  .plate-tile canvas { width: 148px; image-rendering: pixelated; display: block; margin: 0 auto; border-radius: 2px; }
+  .plate-tile .d { font-size: 14px; font-weight: 650; margin-top: 7px; }
+  .plate-tile .px { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+  .plate-tile .ok { font-size: 11px; margin-top: 2px; font-weight: 600; }
+  .plate-note { font-size: 11px; color: var(--text-muted); margin-top: 10px; }
+
+  /* table */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: right; padding: 7px 10px; border-bottom: 1px solid var(--hairline); white-space: nowrap; }
+  th { color: var(--text-muted); font-weight: 500; font-size: 12px; }
+  th:first-child, td:first-child { text-align: left; }
+  td { font-variant-numeric: tabular-nums; }
+  td.name { font-variant-numeric: normal; max-width: 26em; overflow: hidden; text-overflow: ellipsis; }
+  tr:last-child td { border-bottom: none; }
+  .tablewrap { overflow-x: auto; }
+  .rowdel { border: none; background: none; color: var(--text-muted); cursor: pointer; font-size: 14px; padding: 2px 6px; }
+  .rowdel:hover { color: var(--critical-text); }
+
+  button.primary {
+    font: inherit; font-weight: 600; padding: 7px 14px; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--text-primary); color: var(--page);
+  }
+  .empty { color: var(--text-muted); padding: 8px 0; }
+  footer { padding: 0 24px 28px; color: var(--text-muted); font-size: 12px; max-width: 70em; }
+  code { font-size: 12px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>DustyCam Configurator</h1>
+  <p>Weigh power, solar, and pixels-on-target across compute + camera + lens + panel setups.
+     Draw numbers are estimates until measured (same assumptions as
+     <code>hardware/power/budget.py</code> and <code>hardware/optics/fov.py</code>).</p>
+</header>
+
+<main>
+  <section class="card" id="controls">
+    <h2>Setup</h2>
+    <div class="field">
+      <label for="board">Compute platform</label>
+      <select id="board"></select>
+      <div class="hint" id="boardHint"></div>
+    </div>
+    <div class="field">
+      <label for="camera">Camera</label>
+      <select id="camera"></select>
+    </div>
+    <div class="field">
+      <label for="focal">Lens focal length</label>
+      <select id="focal"></select>
+      <div class="hint" id="lensHint"></div>
+    </div>
+    <div class="field">
+      <label for="duty">Inference duty cycle: <span class="rangeval" id="dutyVal"></span></label>
+      <input type="range" id="duty" min="5" max="100" step="5" value="25">
+      <div class="hint">Fraction of time actively capturing + inferring (25% is the budget.py guess)</div>
+    </div>
+    <div class="field two">
+      <div>
+        <label for="task">Vision task</label>
+        <select id="task">
+          <option value="25">Detect vehicle</option>
+          <option value="60">Classify vehicle</option>
+          <option value="150" selected>Read plate</option>
+        </select>
+      </div>
+      <div>
+        <label for="distance">Target distance (m)</label>
+        <input type="number" id="distance" min="1" max="500" step="1" value="30">
+      </div>
+    </div>
+    <div class="field">
+      <label for="battery">Battery</label>
+      <select id="battery">
+        <option value="24">2×18650 Li-ion (24 Wh)</option>
+        <option value="48">4×18650 Li-ion (48 Wh)</option>
+        <option value="128">12 V 10 Ah LiFePO4 (128 Wh)</option>
+        <option value="256" selected>12 V 20 Ah LiFePO4 (256 Wh)</option>
+        <option value="custom">Custom…</option>
+      </select>
+      <input type="number" id="batteryWh" min="1" step="1" value="256" style="display:none; margin-top:6px" placeholder="Wh">
+    </div>
+    <div class="field">
+      <label for="panel">Solar panel</label>
+      <select id="panel">
+        <option value="0">None (battery only)</option>
+        <option value="10">10 W</option>
+        <option value="20">20 W</option>
+        <option value="50">50 W</option>
+        <option value="100" selected>100 W</option>
+        <option value="200">200 W</option>
+        <option value="custom">Custom…</option>
+      </select>
+      <input type="number" id="panelW" min="0" step="1" value="100" style="display:none; margin-top:6px" placeholder="W">
+    </div>
+    <button class="primary" id="save">Save setup to comparison</button>
+  </section>
+
+  <section style="display:grid; gap:16px">
+
+    <div class="card">
+      <h2>Power</h2>
+      <div class="tiles" id="powerTiles"></div>
+      <div class="meter-row">
+        <span id="meterStatus" class="status"></span>
+        <span id="meterDetail" style="color:var(--text-secondary)"></span>
+      </div>
+      <div class="meter-track" id="meterTrack"><div class="meter-fill" id="meterFill"></div></div>
+      <div class="meter-scale"><span>0%</span><span>harvest covers draw → 100%</span><span>150%</span></div>
+      <div class="charts2">
+        <div>
+          <h3>Battery level through the year — the band is each day's swing, the lower edge is the overnight low</h3>
+          <div class="chart" id="yearChart"></div>
+        </div>
+        <div>
+          <h3>Average draw vs duty cycle — where the harvest line crosses is the most duty this panel sustains</h3>
+          <div class="chart" id="powerChart"></div>
+        </div>
+      </div>
+      <span class="chip" id="chipPower"></span>
+    </div>
+
+    <div class="card">
+      <h2>Optics</h2>
+      <div class="tiles" id="opticsTiles"></div>
+      <h3>How far each task works with this sensor + lens</h3>
+      <div class="chart" id="rangeChart"></div>
+      <span class="chip" id="chipOptics"></span>
+    </div>
+
+    <div class="card">
+      <h2>Plate reading at distance</h2>
+      <div class="chart-sub">A 520 mm plate rendered at the pixel resolution this sensor + lens actually delivers.</div>
+      <div class="plates" id="plates"></div>
+      <div class="plate-note">Simulated resolution only — assumes good light, no motion blur, plate facing the camera.
+        The ≥150 px/m threshold ≈ 78 px across the plate.</div>
+      <h3>Compute</h3>
+      <div class="tiles" id="computeTiles" style="max-width:340px"></div>
+      <span class="chip" id="chipCompute" style="margin-top:2px"></span>
+    </div>
+
+    <div class="card">
+      <h2>Saved setups</h2>
+      <div class="tablewrap">
+        <table id="cmp">
+          <thead>
+            <tr>
+              <th>Setup</th><th>Avg draw</th><th>Peak</th><th>Harvest</th>
+              <th>Panel to sustain</th><th>Autonomy</th><th>HFOV</th>
+              <th>Plate range</th><th>Vehicle range</th><th>Est. inference</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="cmpBody"></tbody>
+        </table>
+        <div class="empty" id="cmpEmpty">Nothing saved yet — configure a setup and hit “Save setup to comparison”.</div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  Assumptions: ×1.25 peak design margin · 80% usable battery depth · 15% average solar harvest
+  (weather / angle / winter) · 85% conversion efficiency. Plate range assumes good light and low
+  motion blur. Inference throughput figures are ballpark small-model (YOLO-n-class @ ~640 px)
+  numbers — measure on the real pipeline.
+</footer>
+
+<script>
+"use strict";
+
+// ---- domain data (port of hardware/power/budget.py + hardware/optics/fov.py) ----
+const DESIGN_MARGIN = 1.25;
+const USABLE_DEPTH = 0.8;
+const SOLAR_DERATE = 0.15;
+const CONVERSION_EFF = 0.85;
+
+// peak/active/idle in watts; fps = rough small-object-detector throughput
+const BOARDS = {
+  pi5:     { name: "Raspberry Pi 5",     peak: 13.0, active: 8.0, idle: 2.7,  fps: "~8 fps (CPU, ncnn)",   fpsN: 8,
+             hint: "Most capable; heaviest draw. Runs full YOLO pipeline." },
+  pizero:  { name: "Pi Zero 2 W",        peak: 4.0,  active: 3.0, idle: 0.8,  fps: "~1 fps (CPU)",         fpsN: 1,
+             hint: "Low power; motion-gated capture more than live tracking." },
+  pixel6:  { name: "Google Pixel 6 (used)", peak: 8.0, active: 5.0, idle: 0.5, fps: "~25 fps (Tensor GPU/TPU, TFLite)", fpsN: 25,
+             hint: "Used phone: camera + compute + built-in UPS in one weatherable brick. Throttles in direct sun; est. draws." },
+  qcs6490: { name: "Rubik Pi 3 (QCS6490)",  peak: 12.0, active: 7.0, idle: 1.5, fps: "~30 fps (12 TOPS NPU)", fpsN: 30,
+             hint: "Snapdragon SoM, Android or Linux; NPU runs full YOLO. Takes Pi CSI cameras. Est. draws." },
+  openmvn6:{ name: "OpenMV N6",          peak: 2.0,  active: 1.2, idle: 0.15, fps: "~20 fps (600 GOPS NPU)", fpsN: 20,
+             hint: "MCU + NPU, M12 lens. Small models only; est. draws." },
+  xiao:    { name: "XIAO ESP32-S3 Sense",peak: 1.2,  active: 0.7, idle: 0.05, fps: "~2 fps (tiny models)", fpsN: 2,
+             hint: "Tiniest draw; fixed lens, tiny models, no plate reading. Est. draws." },
+};
+
+// width_px/height_px, pixel pitch µm; lens: fixed mm, or list of options (CS/M12 mount)
+// power: extra draw of the camera module itself (0 = included in board numbers)
+const CAMERAS = {
+  hq:      { name: "Pi HQ (IMX477)",             w: 4056, h: 3040, um: 1.55, lens: [4, 6, 8, 12, 16, 25, 35, 50], defLens: 16,
+             mount: "C/CS mount", power: { peak: 1.0, active: 0.7, idle: 0.1 }, boards: ["pi5","pizero","qcs6490"] },
+  module3: { name: "Pi Module 3 (IMX708)",       w: 4608, h: 2592, um: 1.4,  lens: 4.74,
+             mount: "fixed lens", power: { peak: 0.7, active: 0.4, idle: 0.05 }, boards: ["pi5","pizero","qcs6490"] },
+  gs:      { name: "Pi Global Shutter (IMX296)", w: 1456, h: 1088, um: 3.45, lens: [4, 6, 8, 12, 16, 25], defLens: 16,
+             mount: "C/CS mount · global shutter kills motion-blur skew", power: { peak: 0.7, active: 0.4, idle: 0.05 }, boards: ["pi5","pizero","qcs6490"] },
+  gn1vid:  { name: "Pixel 6 main (GN1, 12.5 MP binned)", w: 4080, h: 3072, um: 2.4, lens: 6.81,
+             mount: "fixed lens · what video/continuous inference actually sees", power: { peak: 0, active: 0, idle: 0 }, boards: ["pixel6"] },
+  gn1full: { name: "Pixel 6 main (GN1, 50 MP still)",    w: 8160, h: 6144, um: 1.2, lens: 6.81,
+             mount: "fixed lens · full-res stills only — burst capture, not live video", power: { peak: 0, active: 0, idle: 0 }, boards: ["pixel6"] },
+  imx500:  { name: "Pi AI Camera (IMX500)",      w: 4056, h: 3040, um: 1.55, lens: 4.74,
+             mount: "fixed lens · on-sensor NPU: detection ~30 fps without loading the host",
+             power: { peak: 2.0, active: 1.5, idle: 0.3 }, boards: ["pi5","pizero"], fpsOverride: "~30 fps (on-sensor NPU)", fpsN: 30 },
+  pag7936: { name: "PAG7936 (global shutter)",   w: 1288, h: 808,  um: 3.0,  lens: [2.8, 4, 6, 8, 12, 16], defLens: 8,
+             mount: "M12 mount", power: { peak: 0, active: 0, idle: 0 }, boards: ["openmvn6"] },
+  ov2640:  { name: "OV2640 (stock)",             w: 1600, h: 1200, um: 2.2,  lens: 2.7,
+             mount: "fixed lens", power: { peak: 0, active: 0, idle: 0 }, boards: ["xiao"] },
+  ov5640:  { name: "OV5640 (AF swap)",           w: 2592, h: 1944, um: 1.4,  lens: 3.4,
+             mount: "fixed lens", power: { peak: 0, active: 0, idle: 0 }, boards: ["xiao"] },
+};
+
+const PXM_DETECT = 25, PXM_CLASSIFY = 60, PXM_PLATE = 150;
+const TASKS = [
+  { pxm: PXM_DETECT,   name: "Detect vehicle" },
+  { pxm: PXM_CLASSIFY, name: "Classify vehicle" },
+  { pxm: PXM_PLATE,    name: "Read plate" },
+];
+const PLATE_W_M = 0.52, PLATE_H_M = 0.11;   // EU-size plate
+
+// ---- math ----
+const sensorWidthMm = c => c.w * c.um / 1000;
+const hfovDeg = (c, f) => 2 * Math.atan(sensorWidthMm(c) / (2 * f)) * 180 / Math.PI;
+const pxPerM = (c, f, d) => c.w / (d * sensorWidthMm(c) / f);
+const maxDistM = (c, f, pxm) => c.w * f / (pxm * sensorWidthMm(c));
+
+function compute(cfg) {
+  const b = BOARDS[cfg.board], c = CAMERAS[cfg.camera];
+  const activeW = b.active + c.power.active, idleW = b.idle + c.power.idle;
+  const avg = activeW * cfg.duty + idleW * (1 - cfg.duty);
+  const peak = (b.peak + c.power.peak) * DESIGN_MARGIN;
+  const harvest = cfg.panelW * SOLAR_DERATE * CONVERSION_EFF;   // average W harvested
+  const panelNeeded = avg / (SOLAR_DERATE * CONVERSION_EFF);
+  const autonomyH = cfg.batteryWh * USABLE_DEPTH / avg;         // battery only, no sun
+  return {
+    activeW, idleW,
+    avg, peak, harvest, panelNeeded, autonomyH,
+    balance: harvest - avg,
+    coverPct: avg > 0 ? harvest / avg * 100 : 0,
+    hfov: hfovDeg(c, cfg.focal),
+    pxm: pxPerM(c, cfg.focal, cfg.distance),
+    coverW: 2 * cfg.distance * Math.tan(hfovDeg(c, cfg.focal) / 2 * Math.PI / 180),
+    plateRange: maxDistM(c, cfg.focal, PXM_PLATE),
+    vehicleRange: maxDistM(c, cfg.focal, PXM_DETECT),
+    taskRange: maxDistM(c, cfg.focal, cfg.taskPxm),
+    fps: c.fpsOverride || b.fps,
+    fpsN: c.fpsN ?? b.fpsN,
+  };
+}
+
+// ---- ui helpers ----
+const $ = id => document.getElementById(id);
+const fmt = (n, d = 1) => n.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d });
+const NS = "http://www.w3.org/2000/svg";
+
+function svgEl(name, attrs = {}, text) {
+  const e = document.createElementNS(NS, name);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+
+function fillSelect(sel, entries, selected) {
+  sel.innerHTML = "";
+  for (const [value, label] of entries) {
+    const o = document.createElement("option");
+    o.value = value; o.textContent = label;
+    if (value === selected) o.selected = true;
+    sel.appendChild(o);
+  }
+}
+
+function initBoards() {
+  fillSelect($("board"), Object.entries(BOARDS).map(([k, v]) => [k, v.name]), "pi5");
+}
+
+function refreshCameras() {
+  const board = $("board").value;
+  const prev = $("camera").value;
+  const opts = Object.entries(CAMERAS).filter(([, c]) => c.boards.includes(board));
+  fillSelect($("camera"), opts.map(([k, c]) => [k, c.name]), opts.some(([k]) => k === prev) ? prev : opts[0][0]);
+  $("boardHint").textContent = BOARDS[board].hint;
+  refreshLens();
+}
+
+function refreshLens() {
+  const c = CAMERAS[$("camera").value];
+  const sel = $("focal");
+  if (Array.isArray(c.lens)) {
+    const prev = parseFloat(sel.value);
+    const keep = c.lens.includes(prev) ? prev : c.defLens;
+    fillSelect(sel, c.lens.map(f => [String(f), f + " mm"]), String(keep));
+    sel.disabled = false;
+  } else {
+    fillSelect(sel, [[String(c.lens), c.lens + " mm (fixed)"]], String(c.lens));
+    sel.disabled = true;
+  }
+  $("lensHint").textContent = c.mount;
+}
+
+function readConfig() {
+  return {
+    board: $("board").value,
+    camera: $("camera").value,
+    focal: parseFloat($("focal").value),
+    duty: parseInt($("duty").value, 10) / 100,
+    taskPxm: parseInt($("task").value, 10),
+    distance: Math.max(1, parseFloat($("distance").value) || 30),
+    batteryWh: customValue("battery", "batteryWh"),
+    panelW: customValue("panel", "panelW"),
+  };
+}
+
+function customValue(selId, inputId) {
+  const sel = $(selId), input = $(inputId);
+  if (sel.value === "custom") {
+    input.style.display = "";
+    return Math.max(0, parseFloat(input.value) || 0);
+  }
+  input.style.display = "none";
+  return parseFloat(sel.value);
+}
+
+function tile(label, value, unit, sub) {
+  return `<div class="tile"><div class="label">${label}</div>
+    <div class="value">${value}<span class="unit">${unit}</span></div>
+    ${sub ? `<div class="sub">${sub}</div>` : ""}</div>`;
+}
+
+// shared tooltip: one per chart container; rows built with textContent
+function makeTip(container) {
+  const tip = document.createElement("div");
+  tip.className = "tip";
+  container.appendChild(tip);
+  return {
+    show(px, py, title, rows) {
+      tip.innerHTML = "";
+      const t = document.createElement("div");
+      t.className = "t-title"; t.textContent = title;
+      tip.appendChild(t);
+      for (const r of rows) {
+        const row = document.createElement("div"); row.className = "t-row";
+        const key = document.createElement("span"); key.className = "t-key";
+        if (r.color) key.style.borderTopColor = r.color; else key.style.visibility = "hidden";
+        const val = document.createElement("span"); val.className = "t-val"; val.textContent = r.value;
+        const lab = document.createElement("span"); lab.className = "t-lab"; lab.textContent = r.label;
+        row.append(key, val, lab); tip.appendChild(row);
+      }
+      tip.style.display = "block";
+      const cw = container.clientWidth, tw = tip.offsetWidth;
+      tip.style.left = Math.min(Math.max(4, px + 14), cw - tw - 4) + "px";
+      tip.style.top = Math.max(0, py - tip.offsetHeight - 12) + "px";
+    },
+    hide() { tip.style.display = "none"; },
+  };
+}
+
+function niceStep(range, targetTicks) {
+  const raw = range / targetTicks, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  for (const m of [1, 2, 2.5, 5, 10]) if (raw <= m * mag) return m * mag;
+  return 10 * mag;
+}
+
+// ---- battery-over-a-year simulation ----
+// Peak-sun-hours and daylight sweep sinusoidally between the solstices
+// (winter 1.5 PSH / 9 h, summer 5.5 PSH / 15 h, weather-derated); the annual
+// mean matches the flat 15% derate used everywhere else. Each day integrates
+// a sin² sun profile against the constant draw in half-hour steps.
+const MONTH_STARTS = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function dayName(d) {
+  let m = 11;
+  while (m > 0 && MONTH_STARTS[m] > d) m--;
+  return MONTH_NAMES[m] + " " + (d - MONTH_STARTS[m] + 1);
+}
+
+function simulateYear(cfg, r) {
+  const floorWh = cfg.batteryWh * (1 - USABLE_DEPTH);   // below this the load browns out
+  const dt = 0.5;
+  let soc = cfg.batteryWh;
+  const days = [];
+  for (let day = -61; day < 365; day++) {               // two warm-up months → steady state by Jan 1
+    const doy = (day + 365) % 365;
+    const season = Math.cos(2 * Math.PI * (doy - 172) / 365);   // +1 summer solstice, −1 winter
+    const psh = 3.5 + 2 * season, daylen = 12 + 3 * season;
+    const peak = 2 * psh / daylen, sunrise = 12 - daylen / 2;   // sin² profile integrating to PSH
+    let lo = soc, hi = soc, harvestWh = 0;
+    for (let t = 0; t < 24; t += dt) {
+      const mid = t + dt / 2;
+      const sunW = cfg.panelW > 0 && mid >= sunrise && mid <= sunrise + daylen
+        ? cfg.panelW * CONVERSION_EFF * peak * Math.sin(Math.PI * (mid - sunrise) / daylen) ** 2
+        : 0;
+      soc = Math.min(cfg.batteryWh, Math.max(floorWh, soc + (sunW - r.avg) * dt));
+      lo = Math.min(lo, soc); hi = Math.max(hi, soc);
+      harvestWh += sunW * dt;
+    }
+    if (day >= 0) days.push({ lo: lo / cfg.batteryWh * 100, hi: hi / cfg.batteryWh * 100, harvestWh });
+  }
+  return days;
+}
+
+const FLOOR_PCT = Math.round((1 - USABLE_DEPTH) * 100);
+const floorNightsIn = days => days.filter(d => d.lo <= FLOOR_PCT + 0.1).length;
+
+function renderYearChart(cfg, r, days) {
+  const box = $("yearChart");
+  box.innerHTML = "";
+  const floorPct = FLOOR_PCT;
+
+  const W = 620, H = 210, L = 44, R = 14, T = 14, B = 30;
+  const plotW = W - L - R, plotH = H - T - B;
+  const x = d => L + (d / 364) * plotW;
+  const y = pct => T + plotH - (pct / 100) * plotH;
+
+  const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, role: "img",
+    "aria-label": "Predicted battery level through the year: each day's minimum-to-maximum band" });
+
+  for (const v of [0, 25, 50, 75, 100]) {
+    svg.append(svgEl("line", { x1: L, x2: W - R, y1: y(v), y2: y(v), stroke: "var(--hairline)", "stroke-width": 1 }));
+    svg.append(svgEl("text", { x: L - 6, y: y(v) + 3.5, "text-anchor": "end", class: "axis-label" }, v + "%"));
+  }
+  svg.append(svgEl("line", { x1: L, x2: W - R, y1: y(0), y2: y(0), stroke: "var(--baseline)", "stroke-width": 1 }));
+  MONTH_STARTS.forEach((d, m) => {
+    if (m % 2 === 0) svg.append(svgEl("text", { x: x(d + 15), y: H - 10, "text-anchor": "middle", class: "axis-label" },
+      MONTH_NAMES[m]));
+  });
+
+  // usable-depth floor (threshold semantics → dashed)
+  svg.append(svgEl("line", { x1: L, x2: W - R, y1: y(floorPct), y2: y(floorPct),
+    stroke: "var(--critical-text)", "stroke-width": 1, "stroke-dasharray": "5 4", opacity: 0.7 }));
+  svg.append(svgEl("text", { x: L + 5, y: y(floorPct) + 12, class: "note-label" }, `usable floor ${floorPct}%`));
+
+  // daily min–max band (wash) + overnight-low line
+  const band = days.map((d, i) => (i ? "L" : "M") + x(i).toFixed(1) + " " + y(d.hi).toFixed(1)).join(" ")
+    + days.map((d, i) => "L" + x(days.length - 1 - i).toFixed(1) + " " + y(days[days.length - 1 - i].lo).toFixed(1)).join(" ") + " Z";
+  svg.append(svgEl("path", { d: band, fill: "var(--series-1)", opacity: 0.16, stroke: "none" }));
+  const loLine = days.map((d, i) => (i ? "L" : "M") + x(i).toFixed(1) + " " + y(d.lo).toFixed(1)).join(" ");
+  svg.append(svgEl("path", { d: loLine, fill: "none", stroke: "var(--series-1)", "stroke-width": 2,
+    "stroke-linecap": "round", "stroke-linejoin": "round" }));
+
+  // headline: worst stretch of the year
+  const floorNights = floorNightsIn(days);
+  let minDay = 0;
+  days.forEach((d, i) => { if (d.lo < days[minDay].lo) minDay = i; });
+  if (floorNights > 0) {
+    svg.append(svgEl("text", { x: L + 5, y: T + 10, class: "note-label", fill: "var(--critical-text)",
+      "font-weight": 600 }, `▽ browns out ${floorNights} night${floorNights > 1 ? "s" : ""} a year`));
+  } else {
+    svg.append(svgEl("circle", { cx: x(minDay), cy: y(days[minDay].lo), r: 4.5, fill: "var(--series-1)",
+      stroke: "var(--surface-1)", "stroke-width": 2 }));
+    const anchor = minDay > 300 ? "end" : minDay < 60 ? "start" : "middle";
+    svg.append(svgEl("text", { x: x(minDay), y: Math.min(y(0) - 6, y(days[minDay].lo) + 16), "text-anchor": anchor,
+      class: "end-label" }, `low ${fmt(days[minDay].lo, 0)}% · ${dayName(minDay)}`));
+  }
+
+  // crosshair + tooltip
+  const cross = svgEl("line", { y1: T, y2: y(0), stroke: "var(--baseline)", "stroke-width": 1, visibility: "hidden" });
+  svg.append(cross);
+  const hit = svgEl("rect", { x: L, y: T, width: plotW, height: plotH, fill: "transparent" });
+  svg.append(hit);
+  const tip = makeTip(box);
+  hit.addEventListener("pointermove", ev => {
+    const rect = svg.getBoundingClientRect();
+    const sx = (ev.clientX - rect.left) * (W / rect.width);
+    const d = Math.round(Math.min(364, Math.max(0, (sx - L) / plotW * 364)));
+    cross.setAttribute("x1", x(d)); cross.setAttribute("x2", x(d));
+    cross.setAttribute("visibility", "visible");
+    const rows = [
+      { color: "var(--series-1)", value: fmt(days[d].lo, 0) + "%", label: "overnight low" },
+      { value: fmt(days[d].hi, 0) + "%", label: "daily high" },
+      { value: fmt(days[d].harvestWh, 0) + " Wh", label: `harvest vs ${fmt(r.avg * 24, 0)} Wh draw` },
+    ];
+    tip.show((x(d) / W) * box.clientWidth, (y(days[d].hi) / H) * (box.clientWidth * H / W), dayName(d), rows);
+  });
+  hit.addEventListener("pointerleave", () => { tip.hide(); cross.setAttribute("visibility", "hidden"); });
+
+  box.appendChild(svg);
+}
+
+// ---- power chart: avg draw vs duty cycle, harvest crossing point ----
+function renderPowerChart(cfg, r) {
+  const box = $("powerChart");
+  box.innerHTML = "";
+  const W = 620, H = 200, L = 44, R = 14, T = 16, B = 30;
+  const plotW = W - L - R, plotH = H - T - B;
+  const yMax = Math.max(r.activeW, r.harvest) * 1.15 || 1;
+  const x = duty => L + duty * plotW;                    // duty 0..1
+  const y = w => T + plotH - (w / yMax) * plotH;
+  const avgAt = duty => r.idleW + (r.activeW - r.idleW) * duty;
+
+  const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, role: "img",
+    "aria-label": "Average power draw versus inference duty cycle, with the average solar harvest as a reference line" });
+
+  // gridlines + y ticks
+  const step = niceStep(yMax, 4);
+  for (let v = 0; v <= yMax + 1e-9; v += step) {
+    svg.append(svgEl("line", { x1: L, x2: W - R, y1: y(v), y2: y(v), stroke: "var(--hairline)", "stroke-width": 1 }));
+    svg.append(svgEl("text", { x: L - 6, y: y(v) + 3.5, "text-anchor": "end", class: "axis-label" }, fmt(v, step < 1 ? 1 : 0)));
+  }
+  svg.append(svgEl("text", { x: L - 6, y: T - 5, "text-anchor": "end", class: "axis-label" }, "W"));
+  // x axis
+  svg.append(svgEl("line", { x1: L, x2: W - R, y1: y(0), y2: y(0), stroke: "var(--baseline)", "stroke-width": 1 }));
+  for (const d of [0, 25, 50, 75, 100])
+    svg.append(svgEl("text", { x: x(d / 100), y: H - 10, "text-anchor": "middle", class: "axis-label" }, d + "%"));
+
+  // harvest reference line (threshold semantics → dashed)
+  if (cfg.panelW > 0) {
+    svg.append(svgEl("line", { x1: L, x2: W - R, y1: y(r.harvest), y2: y(r.harvest),
+      stroke: "var(--good-text)", "stroke-width": 1.5, "stroke-dasharray": "5 4" }));
+    const above = r.harvest / yMax > 0.12;
+    svg.append(svgEl("text", { x: W - R, y: y(r.harvest) + (above ? -5 : 13), "text-anchor": "end", class: "note-label" },
+      `solar harvest ${fmt(r.harvest)} W`));
+  }
+
+  // draw line
+  svg.append(svgEl("line", { x1: x(0), y1: y(avgAt(0)), x2: x(1), y2: y(avgAt(1)),
+    stroke: "var(--series-1)", "stroke-width": 2, "stroke-linecap": "round" }));
+
+  // sustainable-duty crossing
+  if (cfg.panelW > 0 && r.activeW > r.idleW) {
+    const dStar = (r.harvest - r.idleW) / (r.activeW - r.idleW);
+    if (dStar > 0 && dStar < 1) {
+      svg.append(svgEl("line", { x1: x(dStar), x2: x(dStar), y1: y(0), y2: y(avgAt(dStar)),
+        stroke: "var(--baseline)", "stroke-width": 1 }));
+      const anchor = dStar > 0.72 ? "end" : "start";
+      svg.append(svgEl("text", { x: x(dStar) + (anchor === "end" ? -5 : 5), y: y(0) - 6,
+        "text-anchor": anchor, class: "note-label" }, `sun-sustained up to ${Math.round(dStar * 100)}%`));
+    } else if (dStar >= 1) {
+      svg.append(svgEl("text", { x: L + 5, y: T + 10, class: "note-label" }, "harvest covers any duty cycle"));
+    }
+  }
+
+  // current-duty marker (surface ring)
+  svg.append(svgEl("circle", { cx: x(cfg.duty), cy: y(r.avg), r: 5.5, fill: "var(--series-1)",
+    stroke: "var(--surface-1)", "stroke-width": 2 }));
+  const dutyAnchor = cfg.duty > 0.8 ? "end" : "start";
+  svg.append(svgEl("text", { x: x(cfg.duty) + (dutyAnchor === "end" ? -9 : 9), y: y(r.avg) - 8,
+    "text-anchor": dutyAnchor, class: "end-label" }, `now: ${fmt(r.avg)} W @ ${Math.round(cfg.duty * 100)}%`));
+
+  // crosshair + tooltip
+  const cross = svgEl("line", { y1: T, y2: y(0), stroke: "var(--baseline)", "stroke-width": 1, visibility: "hidden" });
+  svg.append(cross);
+  const hit = svgEl("rect", { x: L, y: T, width: plotW, height: plotH, fill: "transparent" });
+  svg.append(hit);
+  const tip = makeTip(box);
+  const onMove = ev => {
+    const rect = svg.getBoundingClientRect();
+    const sx = (ev.clientX - rect.left) * (W / rect.width);
+    const duty = Math.round(Math.min(1, Math.max(0, (sx - L) / plotW)) * 20) / 20;  // snap to 5%
+    cross.setAttribute("x1", x(duty)); cross.setAttribute("x2", x(duty));
+    cross.setAttribute("visibility", "visible");
+    const rows = [{ color: "var(--series-1)", value: fmt(avgAt(duty)) + " W", label: "avg draw" }];
+    if (cfg.panelW > 0) {
+      rows.push({ color: "var(--good-text)", value: fmt(r.harvest) + " W", label: "solar harvest" });
+      const bal = r.harvest - avgAt(duty);
+      rows.push({ value: (bal >= 0 ? "+" : "−") + fmt(Math.abs(bal)) + " W", label: bal >= 0 ? "surplus" : "deficit" });
+    }
+    const px = (x(duty) / W) * box.clientWidth;
+    const py = (y(avgAt(duty)) / H) * (box.clientWidth * H / W);
+    tip.show(px, py, `${Math.round(duty * 100)}% duty cycle`, rows);
+  };
+  hit.addEventListener("pointermove", onMove);
+  hit.addEventListener("pointerleave", () => { tip.hide(); cross.setAttribute("visibility", "hidden"); });
+
+  box.appendChild(svg);
+}
+
+// ---- optics chart: max working range per task, target-distance rule ----
+function renderRangeChart(cfg, r) {
+  const box = $("rangeChart");
+  box.innerHTML = "";
+  const c = CAMERAS[cfg.camera];
+  const tasks = TASKS.map(t => ({ ...t, range: maxDistM(c, cfg.focal, t.pxm) }));
+  const barH = 18, gap = 16, labelW = 118;
+  const W = 620, T = 20, B = 28, L = labelW, R = 56;
+  const H = T + tasks.length * (barH + gap) - gap + B;
+  const plotW = W - L - R;
+  const xMax = Math.max(...tasks.map(t => t.range), cfg.distance) * 1.08;
+  const x = m => L + (m / xMax) * plotW;
+
+  const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, role: "img",
+    "aria-label": "Maximum working distance for each vision task, with the current target distance marked" });
+
+  // x gridlines/ticks
+  const step = niceStep(xMax, 5);
+  for (let v = 0; v <= xMax + 1e-9; v += step) {
+    svg.append(svgEl("line", { x1: x(v), x2: x(v), y1: T - 4, y2: H - B, stroke: "var(--hairline)", "stroke-width": 1 }));
+    svg.append(svgEl("text", { x: x(v), y: H - 10, "text-anchor": "middle", class: "axis-label" }, fmt(v, 0) + (v === 0 ? " m" : "") ));
+  }
+  svg.append(svgEl("line", { x1: L, x2: L, y1: T - 4, y2: H - B, stroke: "var(--baseline)", "stroke-width": 1 }));
+
+  const tip = makeTip(box);
+  tasks.forEach((t, i) => {
+    const yTop = T + i * (barH + gap);
+    const selected = t.pxm === cfg.taskPxm;
+    const fill = selected ? "var(--series-1)" : "var(--dim)";
+    const wpx = Math.max(2, x(t.range) - L);
+    // 4px rounded data-end, square at baseline: rounded rect + square patch at the left
+    const bar = svgEl("rect", { x: L, y: yTop, width: wpx, height: barH, rx: 4, fill });
+    const patch = svgEl("rect", { x: L, y: yTop, width: Math.min(4, wpx), height: barH, fill });
+    svg.append(bar, patch);
+    svg.append(svgEl("text", { x: L - 8, y: yTop + barH / 2 + 4, "text-anchor": "end", class: "cat-label",
+      "font-weight": selected ? 600 : 400 }, t.name));
+    svg.append(svgEl("text", { x: x(t.range) + 6, y: yTop + barH / 2 + 4, class: "end-label" }, fmt(t.range, 0) + " m"));
+    // oversized hit target + tooltip
+    const hit = svgEl("rect", { x: 0, y: yTop - gap / 2, width: W, height: barH + gap, fill: "transparent" });
+    hit.addEventListener("pointermove", ev => {
+      bar.setAttribute("opacity", "0.85");
+      const rect = svg.getBoundingClientRect();
+      tip.show((ev.clientX - rect.left), (yTop / H) * rect.height, t.name, [
+        { color: fill, value: fmt(t.range, 0) + " m", label: "max range (≥" + t.pxm + " px/m)" },
+        { value: fmt(pxPerM(c, cfg.focal, cfg.distance), 0) + " px/m", label: "at target " + cfg.distance + " m" },
+      ]);
+    });
+    hit.addEventListener("pointerleave", () => { bar.removeAttribute("opacity"); tip.hide(); });
+    svg.append(hit);
+  });
+
+  // target-distance rule
+  svg.append(svgEl("line", { x1: x(cfg.distance), x2: x(cfg.distance), y1: T - 12, y2: H - B,
+    stroke: "var(--text-primary)", "stroke-width": 1.25 }));
+  const anchor = (cfg.distance / xMax) > 0.8 ? "end" : "start";
+  svg.append(svgEl("text", { x: x(cfg.distance) + (anchor === "end" ? -5 : 5), y: T - 8, "text-anchor": anchor,
+    class: "note-label", "font-weight": 600 }, `target ${cfg.distance} m`));
+
+  box.appendChild(svg);
+}
+
+// ---- plate preview: draw once hi-res, downsample to the delivered resolution ----
+const plateSrc = (() => {
+  const cv = document.createElement("canvas");
+  cv.width = 1040; cv.height = 220;                       // 2 px per mm of a 520×110 plate
+  const g = cv.getContext("2d");
+  const rr = (x, y, w, h, r) => { g.beginPath(); g.roundRect(x, y, w, h, r); };
+  rr(0, 0, 1040, 220, 18); g.fillStyle = "#f2f2ee"; g.fill();
+  g.save(); rr(0, 0, 1040, 220, 18); g.clip();
+  g.fillStyle = "#003399"; g.fillRect(0, 0, 88, 220);     // EU-style band
+  g.fillStyle = "#ffcc00"; g.font = "700 34px system-ui, sans-serif";
+  g.textAlign = "center"; g.fillText("✳", 44, 78); g.fillText("D", 44, 190);
+  g.restore();
+  rr(4, 4, 1032, 212, 14); g.strokeStyle = "#101010"; g.lineWidth = 9; g.stroke();
+  g.fillStyle = "#101010"; g.textAlign = "center"; g.textBaseline = "middle";
+  g.font = "700 152px 'Arial Narrow', 'Liberation Sans Narrow', system-ui, sans-serif";
+  g.fillText("DC·5T 42", 566, 122);
+  return cv;
+})();
+
+function downscale(src, tw, th) {
+  let cur = src;
+  while (cur.width / 2 > tw) {
+    const half = document.createElement("canvas");
+    half.width = Math.max(1, Math.round(cur.width / 2));
+    half.height = Math.max(1, Math.round(cur.height / 2));
+    const g = half.getContext("2d");
+    g.imageSmoothingEnabled = true; g.imageSmoothingQuality = "high";
+    g.drawImage(cur, 0, 0, half.width, half.height);
+    cur = half;
+  }
+  const out = document.createElement("canvas");
+  out.width = Math.max(1, Math.round(tw)); out.height = Math.max(1, Math.round(th));
+  const g = out.getContext("2d");
+  g.imageSmoothingEnabled = true; g.imageSmoothingQuality = "high";
+  g.drawImage(cur, 0, 0, out.width, out.height);
+  return out;
+}
+
+const roundDist = m => m >= 100 ? Math.round(m / 10) * 10 : m >= 20 ? Math.round(m / 5) * 5 : Math.max(1, Math.round(m));
+
+function renderPlates(cfg, r) {
+  const c = CAMERAS[cfg.camera];
+  const R0 = r.plateRange;
+  // candidate distances: inside / at / beyond the read limit, plus the current target
+  const cands = [
+    { d: roundDist(R0 * 0.4) },
+    { d: roundDist(R0 * 0.7) },
+    { d: Math.round(R0 * 10) / 10, tag: "≈150 px/m limit" },
+    { d: roundDist(R0 * 1.6) },
+    { d: cfg.distance, target: true },
+  ];
+  // dedupe near-equal distances; the target wins, then the limit
+  cands.sort((a, b) => (b.target ? 1 : 0) - (a.target ? 1 : 0) || (b.tag ? 1 : 0) - (a.tag ? 1 : 0));
+  const kept = [];
+  for (const cand of cands)
+    if (!kept.some(k => Math.abs(k.d - cand.d) / Math.max(k.d, cand.d) < 0.12)) kept.push(cand);
+  kept.sort((a, b) => a.d - b.d);
+
+  const box = $("plates");
+  box.innerHTML = "";
+  for (const { d, tag, target } of kept) {
+    const pxAcross = pxPerM(c, cfg.focal, d) * PLATE_W_M;
+    const small = downscale(plateSrc, pxAcross, pxAcross * PLATE_H_M / PLATE_W_M);
+    const div = document.createElement("div");
+    div.className = "plate-tile" + (target ? " target" : "");
+    const tagEl = document.createElement("div");
+    tagEl.className = "tag" + (tag && !target ? " limit" : "");
+    tagEl.textContent = target ? "target distance" : (tag || " ");
+    const dEl = document.createElement("div"); dEl.className = "d"; dEl.textContent = fmt(d, d < 20 ? 0 : 0) + " m";
+    const pxEl = document.createElement("div"); pxEl.className = "px";
+    pxEl.textContent = Math.round(pxAcross) + " px across plate";
+    const okEl = document.createElement("div"); okEl.className = "ok";
+    const pxm = pxPerM(c, cfg.focal, d);
+    if (pxm >= PXM_PLATE)      { okEl.textContent = "✓ readable";  okEl.className += " status-good"; }
+    else if (pxm >= PXM_PLATE * 0.7) { okEl.textContent = "△ marginal";  okEl.className += " status-warning"; }
+    else                        { okEl.textContent = "▽ too far";   okEl.className += " status-critical"; }
+    div.append(tagEl, small, dEl, pxEl, okEl);
+    box.appendChild(div);
+  }
+}
+
+// ---- sections ----
+function render() {
+  const cfg = readConfig();
+  const r = compute(cfg);
+  $("dutyVal").textContent = Math.round(cfg.duty * 100) + "%";
+
+  const autonomyStr = r.autonomyH >= 48 ? fmt(r.autonomyH / 24) : fmt(r.autonomyH, 0);
+  const autonomyUnit = r.autonomyH >= 48 ? "days" : "h";
+
+  $("powerTiles").innerHTML =
+    tile("Average draw", fmt(r.avg), "W", `at ${Math.round(cfg.duty * 100)}% duty`) +
+    tile("Peak rail", fmt(r.peak), "W", `×${DESIGN_MARGIN} margin — sizes regulator`) +
+    tile("Solar harvest (avg)", fmt(r.harvest), "W", cfg.panelW ? `${cfg.panelW} W panel, ${Math.round(SOLAR_DERATE * 100)}% derate` : "no panel") +
+    tile("Panel to sustain", fmt(r.panelNeeded, 0), "W", "rating that covers avg draw") +
+    tile("Battery autonomy", autonomyStr, autonomyUnit, `${cfg.batteryWh} Wh, no sun, 80% depth`);
+
+  $("opticsTiles").innerHTML =
+    tile("Field of view", fmt(r.hfov), "°", "horizontal") +
+    tile(`Scene width @ ${cfg.distance} m`, fmt(r.coverW, 0), "m", "what the frame covers") +
+    tile(`Pixels on target @ ${cfg.distance} m`, fmt(r.pxm, 0), "px/m", `task needs ${cfg.taskPxm}`);
+
+  $("computeTiles").innerHTML =
+    tile("Est. inference", r.fps.replace(/ \(.*/, ""), "", r.fps.match(/\((.*)\)/)?.[1] || "");
+
+  const days = simulateYear(cfg, r);
+  renderMeter(r, cfg);
+  renderYearChart(cfg, r, days);
+  renderPowerChart(cfg, r);
+  renderRangeChart(cfg, r);
+  renderPlates(cfg, r);
+  renderChips(r, cfg, days);
+}
+
+function renderMeter(r, cfg) {
+  const pct = Math.min(r.coverPct, 150);
+  let color, cls, label, icon;
+  if (cfg.panelW === 0)            { color = "var(--critical)"; cls = "status-critical"; icon = "▽"; label = "Battery only — drains"; }
+  else if (r.coverPct >= 130)      { color = "var(--good)";     cls = "status-good";     icon = "✓"; label = "Surplus"; }
+  else if (r.coverPct >= 100)      { color = "var(--warning)";  cls = "status-warning";  icon = "△"; label = "Marginal surplus"; }
+  else                             { color = "var(--critical)"; cls = "status-critical"; icon = "▽"; label = "Deficit — battery drains"; }
+
+  $("meterFill").style.width = (pct / 150 * 100) + "%";
+  $("meterFill").style.background = color;
+  $("meterTrack").style.background = `color-mix(in srgb, ${color} 18%, var(--surface-1))`;
+  $("meterStatus").className = "status " + cls;
+  $("meterStatus").textContent = `${icon} ${label}`;
+  $("meterDetail").textContent = cfg.panelW === 0
+    ? `no solar input, −${fmt(r.avg)} W continuous`
+    : `harvest ${fmt(r.harvest)} W vs draw ${fmt(r.avg)} W (${fmt(r.coverPct, 0)}% covered, ${r.balance >= 0 ? "+" : "−"}${fmt(Math.abs(r.balance))} W)`;
+}
+
+function renderChips(r, cfg, days) {
+  // verdict comes from the year simulation, not the flat average — an average
+  // surplus can still brown out in midwinter if the battery can't bridge it
+  const floorNights = floorNightsIn(days);
+  const minLo = Math.min(...days.map(d => d.lo));
+  if (cfg.panelW === 0 || r.balance < 0)
+    $("chipPower").innerHTML = `▽ <b>Power doesn't sustain</b> — runs ${r.autonomyH >= 48 ? fmt(r.autonomyH / 24) + " days" : fmt(r.autonomyH, 0) + " h"} on battery`;
+  else if (floorNights > 0)
+    $("chipPower").innerHTML = `▽ <b>Winter gap</b> — average surplus, but the battery browns out ${floorNights} nights a year; bigger panel or battery`;
+  else
+    $("chipPower").innerHTML = `✓ <b>Power sustains year-round</b> — never below ${fmt(minLo, 0)}% even on the worst midwinter night`;
+
+  const opticsOk = r.pxm >= cfg.taskPxm;
+  const taskName = { 25: "vehicle detection", 60: "vehicle classification", 150: "plate reading" }[cfg.taskPxm];
+  $("chipOptics").innerHTML = opticsOk
+    ? `✓ <b>Optics OK</b> — ${fmt(r.pxm, 0)} px/m at ${cfg.distance} m (${taskName} works out to ${fmt(r.taskRange, 0)} m)`
+    : `▽ <b>Optics short</b> — ${fmt(r.pxm, 0)} px/m at ${cfg.distance} m; ${taskName} needs ≤ ${fmt(r.taskRange, 0)} m or a longer lens`;
+
+  const speedNote = r.fpsN >= 10 ? "enough for frame-to-frame tracking"
+                  : r.fpsN >= 4  ? "marginal for tracking fast cars"
+                  : "event capture only — too slow to track motion";
+  $("chipCompute").innerHTML = `${r.fpsN >= 10 ? "✓" : r.fpsN >= 4 ? "△" : "▽"} <b>Compute</b> — ${r.fps}, ${speedNote}`;
+}
+
+// ---- comparison (localStorage) ----
+const LS_KEY = "dustycam-configurator-saved";
+const loadSaved = () => { try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch { return []; } };
+const storeSaved = rows => localStorage.setItem(LS_KEY, JSON.stringify(rows));
+
+function saveCurrent() {
+  const cfg = readConfig();
+  const r = compute(cfg);
+  const b = BOARDS[cfg.board], c = CAMERAS[cfg.camera];
+  const rows = loadSaved();
+  rows.push({
+    name: `${b.name} + ${c.name} @ ${cfg.focal} mm · ${cfg.panelW} W panel · ${cfg.batteryWh} Wh`,
+    avg: r.avg, peak: r.peak, harvest: r.harvest, panelNeeded: r.panelNeeded,
+    autonomyH: r.autonomyH, hfov: r.hfov, plateRange: r.plateRange,
+    vehicleRange: r.vehicleRange, fps: r.fps,
+  });
+  storeSaved(rows);
+  renderTable();
+}
+
+function renderTable() {
+  const rows = loadSaved();
+  $("cmpEmpty").style.display = rows.length ? "none" : "";
+  $("cmpBody").innerHTML = rows.map((s, i) => `<tr>
+    <td class="name" title="${s.name}">${s.name}</td>
+    <td>${fmt(s.avg)} W</td>
+    <td>${fmt(s.peak)} W</td>
+    <td>${fmt(s.harvest)} W</td>
+    <td>${fmt(s.panelNeeded, 0)} W</td>
+    <td>${s.autonomyH >= 48 ? fmt(s.autonomyH / 24) + " d" : fmt(s.autonomyH, 0) + " h"}</td>
+    <td>${fmt(s.hfov)}°</td>
+    <td>${fmt(s.plateRange)} m</td>
+    <td>${fmt(s.vehicleRange)} m</td>
+    <td>${s.fps}</td>
+    <td><button class="rowdel" data-i="${i}" title="Remove">✕</button></td>
+  </tr>`).join("");
+  for (const btn of document.querySelectorAll(".rowdel")) {
+    btn.onclick = () => { const rows = loadSaved(); rows.splice(+btn.dataset.i, 1); storeSaved(rows); renderTable(); };
+  }
+}
+
+// ---- wire up ----
+initBoards();
+refreshCameras();
+$("board").addEventListener("change", () => { refreshCameras(); render(); });
+$("camera").addEventListener("change", () => { refreshLens(); render(); });
+for (const id of ["focal", "duty", "task", "distance", "battery", "batteryWh", "panel", "panelW"])
+  $(id).addEventListener("input", render);
+$("save").addEventListener("click", saveCurrent);
+render();
+renderTable();
+</script>
+</body>
+</html>

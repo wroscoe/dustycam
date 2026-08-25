@@ -1,0 +1,29 @@
+menu "miclogger"
+    config MIC_WIFI_SSID
+        string "WiFi SSID"
+        default ""
+    config MIC_WIFI_PASS
+        string "WiFi password"
+        default ""
+    config MIC_SERVER_HOST
+        string "sensorhub host/IP"
+        default ""
+    config MIC_SERVER_PORT
+        int "sensorhub port"
+        default 8088
+    config MIC_DEVICE_NAME
+        string "device name (blob path + firmware identity)"
+        default "xiaomic1"
+    config MIC_SAMPLE_RATE
+        int "sample rate, Hz"
+        default 16000
+    config MIC_CHUNK_S
+        int "seconds of audio per POST"
+        default 5
+    config MIC_GAIN_SHIFT
+        int "digital gain, bits (6dB each) after DC removal"
+        default 4
+    config MIC_RING_CHUNKS
+        int "PSRAM ring depth, chunks (jitter cushion = depth * chunk_s)"
+        default 6
+endmenu

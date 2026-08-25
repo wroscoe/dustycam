@@ -1,0 +1,35 @@
+menu "camlogger"
+    config CAM_WIFI_SSID
+        string "WiFi SSID"
+        default ""
+    config CAM_WIFI_PASS
+        string "WiFi password"
+        default ""
+    config CAM_SERVER_HOST
+        string "sensorhub host/IP"
+        default ""
+    config CAM_SERVER_PORT
+        int "sensorhub port"
+        default 8088
+    config CAM_DEVICE_NAME
+        string "device name (blob path + firmware identity)"
+        default "cam1"
+    config CAM_CAPTURE_INTERVAL_S
+        int "seconds between frames (recovery mode)"
+        default 5
+    config CAM_WAKE_INTERVAL_S
+        int "deep-sleep wake interval, seconds"
+        default 60
+    config CAM_HEARTBEAT_EVERY_N
+        int "transmit a heartbeat frame every N wakes"
+        default 30
+    config CAM_MOTION_THRESHOLD
+        int "mean thumbnail diff (0-255) that counts as motion"
+        default 8
+    config CAM_GATE_THRESHOLD_PCT
+        int "animal-gate transmit threshold, percent (recall-biased: low)"
+        default 30
+    config CAM_AUDIT_1_IN
+        int "transmit 1 in N gate-rejected motion frames as audit samples"
+        default 50
+endmenu
