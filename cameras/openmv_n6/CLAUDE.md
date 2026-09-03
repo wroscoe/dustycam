@@ -24,9 +24,5 @@ MicroPython v1.28) connected over USB at `/dev/ttyACM0`.
 
 ## Hard-won learnings
 
-Moved to the sargineer warehouse (`http://localhost:8093`) — query it before
-touching this board:
-
-```sh
-curl -s "http://localhost:8093/notes?hw=openmv-cam-n6"
-```
+Previously kept in an external notes warehouse that is no longer available
+on this machine. Record new board-specific gotchas here.

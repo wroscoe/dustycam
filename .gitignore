@@ -104,6 +104,9 @@ Thumbs.db
 *.pt
 
 *.json
+# Case-review markup is design intent, not a build artifact — it has to version
+# alongside the CAD source it comments on. See tools/casereview/.
+!tools/casereview/comments.json
 *.jpg
 *.png    yolov8n.onnx
 
@@ -122,3 +125,12 @@ managed_components/
 *.bin
 *.npy
 sdkconfig.old
+
+# camera standard: generated bundles and per-board secrets
+cameras/*/software/build/
+cameras/*/software/app/secrets.py
+
+# CAD generator caches and downloaded reference meshes (re-fetchable)
+__cadgen__/
+cameras/*/case/ref/*.glb
+cameras/*/hardware/case/ref/*.glb

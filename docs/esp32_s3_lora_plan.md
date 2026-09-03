@@ -24,7 +24,7 @@ radio side on stock Meshtastic — zero radio firmware to write in v1.
 
 ## Phase 1 — breadboard prototype (all parts owned)
 
-Hardware (see `~/sargineer-data` (sargineer skill) for measured facts on all three):
+Hardware (measured facts for all three were kept in the parts warehouse):
 
 | Role | Part | Notes |
 |---|---|---|
@@ -102,4 +102,5 @@ carry over either way — same S3 core.
 - Waveshare OV2640 board: https://www.waveshare.com/ov2640-camera-board.htm
 - Meshtastic serial module: https://meshtastic.org/docs/configuration/module/serial/
 - Seeed XIAO ESP32S3 Sense wiki: https://wiki.seeedstudio.com/xiao_esp32s3_getting_started/
-- Owned-part facts: `~/sargineer-data/parts/{amz-heltec-lora-v4,amz-xiao-esp32s3-sense,amz-esp32s3-cam-gc0308}/part.yaml`
+- Owned-part facts: measured `part.yaml` for amz-heltec-lora-v4, amz-xiao-esp32s3-sense,
+  amz-esp32s3-cam-gc0308 (kept in the parts warehouse, not on this machine)

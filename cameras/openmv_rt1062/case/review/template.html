@@ -1,0 +1,246 @@
+<title>OpenMV RT1062 Case Review</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#eef1f4; --sheet:#ffffff; --ink:#1a2129; --muted:#5b6875; --hair:#d3dae1;
+  --stage:#f2f5f8; --pin:#e4531b; --pin-ink:#ffffff; --pin-done:#6f7d8a; --blue:#1f5f8b;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#14181c; --sheet:#1c2127; --ink:#e4e8ec; --muted:#98a3ae; --hair:#2d353d;
+    --stage:#232a31; --pin:#ff6a2f; --pin-ink:#14181c; --pin-done:#7d8a96; --blue:#6fb0dc;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#14181c; --sheet:#1c2127; --ink:#e4e8ec; --muted:#98a3ae; --hair:#2d353d;
+  --stage:#232a31; --pin:#ff6a2f; --pin-ink:#14181c; --pin-done:#7d8a96; --blue:#6fb0dc;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 var(--sans)}
+a{color:var(--blue)}
+header{padding:28px 32px 18px;border-bottom:1px solid var(--hair);display:flex;flex-wrap:wrap;gap:16px 40px;align-items:flex-end;justify-content:space-between}
+header h1{margin:0;font-size:22px;font-weight:600;letter-spacing:-.01em;text-wrap:balance}
+.eyebrow{font:500 11px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.who{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
+.who input{font:inherit;color:var(--ink);background:var(--sheet);border:1px solid var(--hair);border-radius:4px;padding:5px 8px;width:150px}
+.who input:focus,button:focus-visible,textarea:focus{outline:2px solid var(--blue);outline-offset:1px}
+.howto{padding:12px 32px;font-size:14px;color:var(--muted);border-bottom:1px solid var(--hair)}
+.howto b{color:var(--ink);font-weight:500}
+.status{font:12px var(--mono);color:var(--muted)}
+.status.local{color:var(--pin)}
+.wrap{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:24px;padding:24px 32px 64px;max-width:1500px}
+@media (max-width:1000px){.wrap{grid-template-columns:1fr}.panel{position:static}}
+.sheets{display:grid;gap:28px}
+.sheet{margin:0;background:var(--sheet);border:1px solid var(--hair);border-radius:6px;overflow:hidden}
+.tb{display:grid;grid-template-columns:auto 1fr auto;gap:0 16px;align-items:baseline;padding:10px 14px;border-bottom:1px solid var(--hair)}
+.tb .n{font:500 12px var(--mono);color:var(--muted)}
+.tb h2{margin:0;font-size:15px;font-weight:600}
+.tb .cam{font:12px var(--mono);color:var(--muted)}
+.tb p{grid-column:2/4;margin:2px 0 0;font-size:13px;color:var(--muted);max-width:70ch}
+.stage{position:relative;background:var(--stage);cursor:crosshair;user-select:none}
+.stage img{display:block;width:100%;height:auto}
+.pin{position:absolute;transform:translate(-50%,-100%);width:26px;height:26px;border-radius:50% 50% 50% 0;background:var(--pin);color:var(--pin-ink);font:600 12px/26px var(--mono);text-align:center;transform-origin:0 100%;rotate:-45deg;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.35);border:0;padding:0}
+.pin span{display:block;rotate:45deg}
+.pin.done{background:var(--pin-done)}
+.pin.active{outline:3px solid var(--blue)}
+.pop{position:absolute;z-index:5;width:260px;background:var(--sheet);border:1px solid var(--hair);border-radius:6px;padding:10px;box-shadow:0 6px 24px rgba(0,0,0,.25);cursor:auto}
+.pop textarea{width:100%;min-height:72px;font:inherit;color:var(--ink);background:var(--stage);border:1px solid var(--hair);border-radius:4px;padding:6px;resize:vertical}
+.row{display:flex;gap:6px;justify-content:flex-end;margin-top:8px}
+button{font:500 13px var(--sans);border:1px solid var(--hair);background:var(--sheet);color:var(--ink);border-radius:4px;padding:5px 10px;cursor:pointer}
+button.primary{background:var(--pin);border-color:var(--pin);color:var(--pin-ink)}
+button.quiet{border-color:transparent;color:var(--muted)}
+.panel{position:sticky;top:16px;align-self:start;display:grid;gap:12px}
+.panel h3{margin:0;font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.list{display:grid;gap:8px;max-height:calc(100vh - 220px);overflow:auto}
+.c{background:var(--sheet);border:1px solid var(--hair);border-radius:6px;padding:8px 10px;display:grid;grid-template-columns:26px 1fr;gap:4px 8px;cursor:pointer}
+.c.done{opacity:.6}
+.c.active{border-color:var(--blue)}
+.c .num{font:600 12px/22px var(--mono);color:var(--pin);background:var(--stage);border-radius:4px;text-align:center;height:22px}
+.c.done .num{color:var(--pin-done)}
+.c .view{font:11px var(--mono);color:var(--muted)}
+.c .txt{grid-column:2;white-space:pre-wrap;font-size:14px}
+.c .meta{grid-column:2;font:11px var(--mono);color:var(--muted);display:flex;gap:10px;align-items:center}
+.c .meta button{padding:1px 6px;font-size:11px}
+.empty{font-size:13px;color:var(--muted);padding:8px 0}
+.spec{font:12px/1.7 var(--mono);color:var(--muted);border-top:1px solid var(--hair);padding-top:10px}
+.spec b{color:var(--ink);font-weight:500}
+.specrow{display:flex;justify-content:space-between;gap:12px}
+@media (prefers-reduced-motion:no-preference){.pin{transition:outline-color .15s}}
+</style>
+
+<header>
+  <div>
+    <div class="eyebrow">Design review · 2026-09-01 · rev A · cup + back plate</div>
+    <h1>OpenMV RT1062 (R6) drip-resistant case</h1>
+  </div>
+  <div class="who">
+    <label for="author">Your name</label>
+    <input id="author" placeholder="for the pins" autocomplete="off">
+    <span class="status" id="status">connecting…</span>
+  </div>
+</header>
+<div class="howto"><b>Click anywhere on a view to drop a pin</b>, type the comment, save. Pins are numbered in the order they are made. Click a pin to edit, resolve, or delete it. <span id="localnote"></span></div>
+
+<div class="wrap">
+  <div class="sheets" id="sheets">
+    <!--VIEWS-->
+  </div>
+
+  <aside class="panel">
+    <h3>Pinned comments <span id="count"></span></h3>
+    <div class="row" style="justify-content:flex-start;margin:0">
+      <button id="copy">Copy all as text</button>
+      <button id="showdone" class="quiet">Show resolved</button>
+    </div>
+    <div class="list" id="list"><div class="empty">No pins yet.</div></div>
+    <div class="spec">
+      <div class="specrow"><span>outer W × H × D</span><b>42.2 × 58.4 × 52.3</b></div>
+      <div class="specrow"><span>walls side / front / roof / plate</span><b>3.0 / 2.4 / 2.4 / 2.4</b></div>
+      <div class="specrow"><span>lens hole / hood ID / hood length</span><b>Ø15 / Ø21 / 12</b></div>
+      <div class="specrow"><span>lens proud of face</span><b>8.05</b></div>
+      <div class="specrow"><span>1/4-20 insert bore</span><b>Ø8.8 × 13</b></div>
+      <div class="specrow"><span>board screws</span><b>2 × M2×12</b></div>
+      <div class="specrow"><span>plate screws</span><b>4 × M2×10</b></div>
+      <div class="specrow"><span>battery bay depth</span><b>10.6</b></div>
+      <div class="specrow"><span>cup / plate volume</span><b>24.7 / 7.7 cm³</b></div>
+      <div style="margin-top:6px">all mm · frame: PCB corner, +Y up, +Z out the lens</div>
+    </div>
+  </aside>
+</div>
+
+<script>
+(() => {
+  const VIEWS = window.__VIEWS__;
+  const sheets = document.getElementById('sheets');
+  const list = document.getElementById('list');
+  const status = document.getElementById('status');
+  const author = document.getElementById('author');
+  const countEl = document.getElementById('count');
+  let pins = {};           // id -> pin
+  let showDone = false;
+  let activeId = null;
+  let backend = null;      // 'db' | 'local'
+  let dbcol = null;
+
+  try { author.value = localStorage.getItem('rt1062.author') || ''; } catch (e) {}
+  author.addEventListener('change', () => { try { localStorage.setItem('rt1062.author', author.value.trim()); } catch (e) {} });
+
+  // ---- render sheets
+  VIEWS.forEach((v, i) => {
+    const fig = document.createElement('figure');
+    fig.className = 'sheet'; fig.id = v.id; fig.dataset.view = v.id;
+    fig.innerHTML = `<div class="tb"><span class="n">${String(i + 1).padStart(2, '0')} / ${VIEWS.length}</span><h2>${v.title}</h2><span class="cam">${v.cam}</span><p>${v.note}</p></div>
+      <div class="stage"><img src="${v.src}" alt="${v.title}" draggable="false"><div class="pins"></div></div>`;
+    sheets.appendChild(fig);
+    fig.querySelector('.stage').addEventListener('click', onStageClick);
+  });
+
+  function nextNumber() { return Object.values(pins).reduce((m, p) => Math.max(m, p.n || 0), 0) + 1; }
+  function uid() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36); }
+
+  function onStageClick(e) {
+    if (e.target.closest('.pin') || e.target.closest('.pop')) return;
+    closePop();
+    const stage = e.currentTarget;
+    const r = stage.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+    const draft = { id: uid(), view: stage.closest('.sheet').dataset.view, x, y, n: nextNumber(), text: '', author: author.value.trim(), ts: Date.now(), resolved: false };
+    openPop(stage, draft, true);
+  }
+
+  let pop = null;
+  function closePop() { if (pop) { pop.remove(); pop = null; } }
+  function openPop(stage, pin, isNew) {
+    closePop();
+    pop = document.createElement('div'); pop.className = 'pop';
+    const left = Math.min(pin.x * 100, 100 - 270 / stage.clientWidth * 100);
+    pop.style.left = `calc(${Math.max(0, left)}% + 8px)`;
+    pop.style.top = `${pin.y * 100}%`;
+    pop.innerHTML = `<div class="eyebrow">Pin ${pin.n}${pin.author ? ' · ' + esc(pin.author) : ''}</div>
+      <textarea placeholder="What should change here?">${esc(pin.text)}</textarea>
+      <div class="row">${isNew ? '' : '<button data-act="del" class="quiet">Delete</button><button data-act="res">' + (pin.resolved ? 'Reopen' : 'Resolve') + '</button>'}<button data-act="cancel" class="quiet">Cancel</button><button data-act="save" class="primary">Save</button></div>`;
+    stage.appendChild(pop);
+    const ta = pop.querySelector('textarea'); ta.focus();
+    pop.addEventListener('click', e => e.stopPropagation());
+    pop.addEventListener('keydown', e => { if (e.key === 'Escape') closePop(); if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) pop.querySelector('[data-act=save]').click(); });
+    pop.querySelectorAll('button').forEach(b => b.addEventListener('click', async () => {
+      const act = b.dataset.act;
+      if (act === 'cancel') return closePop();
+      if (act === 'del') { await remove(pin.id); return closePop(); }
+      if (act === 'res') { await save({ ...pin, resolved: !pin.resolved }); return closePop(); }
+      const text = ta.value.trim(); if (!text) { ta.focus(); return; }
+      await save({ ...pin, text, author: pin.author || author.value.trim(), edited: isNew ? undefined : Date.now() });
+      closePop();
+    }));
+  }
+
+  // ---- storage
+  async function save(pin) {
+    const clean = Object.fromEntries(Object.entries(pin).filter(([, v]) => v !== undefined));
+    pins[clean.id] = clean; render();
+    if (backend === 'db') { try { await dbcol.doc(clean.id).set(clean); } catch (e) { status.textContent = 'save failed: ' + (e.code || e.message); } }
+    else persistLocal();
+  }
+  async function remove(id) {
+    delete pins[id]; render();
+    if (backend === 'db') { try { await dbcol.doc(id).delete(); } catch (e) { status.textContent = 'delete failed: ' + (e.code || e.message); } }
+    else persistLocal();
+  }
+  function persistLocal() { try { localStorage.setItem('rt1062.pins', JSON.stringify(pins)); } catch (e) {} }
+  function loadLocal() { try { pins = JSON.parse(localStorage.getItem('rt1062.pins') || '{}'); } catch (e) { pins = {}; } }
+
+  async function connect() {
+    let db = null;
+    try { if (window.claude && window.claude.use) db = await window.claude.use('db'); } catch (e) { db = null; }
+    if (db) {
+      backend = 'db'; dbcol = db.collection('pins');
+      status.textContent = 'shared · live';
+      dbcol.onSnapshot(snap => { pins = {}; snap.docs.forEach(d => { const p = d.data(); if (p && p.id) pins[p.id] = p; }); render(); },
+        e => { status.textContent = 'db error: ' + (e.code || ''); });
+    } else {
+      backend = 'local'; loadLocal(); render();
+      status.textContent = 'saved in this browser only'; status.classList.add('local');
+      document.getElementById('localnote').textContent = 'This copy is not connected to the shared page store, so use “Copy all as text” to send the pins back.';
+    }
+  }
+
+  // ---- render pins + list
+  function esc(s) { return String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+  function viewTitle(id) { const v = VIEWS.find(v => v.id === id); return v ? v.title : id; }
+  function render() {
+    document.querySelectorAll('.pins').forEach(l => l.innerHTML = '');
+    const ordered = Object.values(pins).sort((a, b) => a.n - b.n);
+    ordered.forEach(p => {
+      if (p.resolved && !showDone) return;
+      const layer = document.querySelector(`.sheet[data-view="${p.view}"] .pins`); if (!layer) return;
+      const b = document.createElement('button'); b.className = 'pin' + (p.resolved ? ' done' : '') + (p.id === activeId ? ' active' : '');
+      b.style.left = p.x * 100 + '%'; b.style.top = p.y * 100 + '%'; b.title = p.text; b.innerHTML = `<span>${p.n}</span>`;
+      b.addEventListener('click', e => { e.stopPropagation(); activeId = p.id; render(); openPop(layer.parentElement, p, false); });
+      layer.appendChild(b);
+    });
+    const shown = ordered.filter(p => showDone || !p.resolved);
+    countEl.textContent = ordered.length ? `(${ordered.filter(p => !p.resolved).length} open / ${ordered.length})` : '';
+    list.innerHTML = shown.length ? '' : '<div class="empty">No pins yet. Click on a view to add one.</div>';
+    shown.forEach(p => {
+      const c = document.createElement('div'); c.className = 'c' + (p.resolved ? ' done' : '') + (p.id === activeId ? ' active' : '');
+      c.innerHTML = `<div class="num">${p.n}</div><div class="view">${esc(viewTitle(p.view))}</div><div class="txt">${esc(p.text)}</div>
+        <div class="meta"><span>${esc(p.author || 'anon')}</span><span>${new Date(p.ts).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span><button data-r>${p.resolved ? 'Reopen' : 'Resolve'}</button></div>`;
+      c.addEventListener('click', e => {
+        if (e.target.matches('[data-r]')) { save({ ...p, resolved: !p.resolved }); return; }
+        activeId = p.id; render(); document.getElementById(p.view).scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+      list.appendChild(c);
+    });
+  }
+  document.getElementById('showdone').addEventListener('click', e => { showDone = !showDone; e.target.textContent = showDone ? 'Hide resolved' : 'Show resolved'; render(); });
+  document.getElementById('copy').addEventListener('click', async () => {
+    const t = Object.values(pins).sort((a, b) => a.n - b.n).map(p => `#${p.n} [${viewTitle(p.view)} @ ${(p.x * 100).toFixed(0)}%,${(p.y * 100).toFixed(0)}%]${p.resolved ? ' (resolved)' : ''} ${p.author || ''}: ${p.text}`).join('\n');
+    try { await navigator.clipboard.writeText(t || '(no pins)'); document.getElementById('copy').textContent = 'Copied'; setTimeout(() => document.getElementById('copy').textContent = 'Copy all as text', 1500); }
+    catch (e) { prompt('Copy this:', t); }
+  });
+  document.addEventListener('click', e => { if (!e.target.closest('.stage')) closePop(); });
+  render(); connect();
+})();
+</script>

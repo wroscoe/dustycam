@@ -48,3 +48,43 @@ make -C software status              # start / stop / restart / logs / status
 ```bash
 pytest cameras/pi5cam/tests
 ```
+
+## Standard mapping (docs/camera_standard.md, 2026-09-02)
+
+**Decision 2026-09-02: leave as is until the Pi is on the bench.** Nothing
+here can be verified without the device plugged in, and the deployed unit
+must not be touched blind. When the Pi is plugged in, do this, in order:
+
+1. `ssh dusty@dusty.local`, `systemctl status dusty`, `journalctl -u dusty -n 200`.
+   Expect a crash loop: `tests/test_motion.py` references `images_folder_path`
+   outside `main()` (NameError on the first motion event) and `Restart=always`
+   restarts it. Confirm before changing anything.
+2. Give the service a real entry point (`software/app/` per the standard) instead
+   of a file in `tests/`; keep `test_motion.py`'s lores/still switching as the
+   Watch/Capture pair.
+3. Implement the standard in `cameras/common/cpython/dusty/`: Deliver to the blob
+   gate with the standard meta, Report telemetry, Serve `/status` + config pull
+   + git-based update, Record with a spool on the SD card, setup mode = the
+   existing `WebSink` MJPEG preview plus the focus score, on `:8266`, with the
+   dashboard's unauthenticated `/api/restart` removed.
+4. Detection: `YoloNode._load_tflite_model()` is a stub that raises; the TFLite
+   exports at the repo root (`yolov8n_saved_model/*.tflite`) are the intended
+   Pi path. Implement or mark Judge not applicable.
+5. Move `~/.dusty` generation onto `dustygen` (an `.env` for the service);
+   register the device in `devices.json` with `expect`.
+6. Fix the path split (`/opt/dusty/env` venv, `~/dustycam` checkout, unit
+   hardcoding `/home/dusty`) so deploy works for any user; make the two
+   `platform.machine().startswith("aarch64")` checks one helper.
+
+| Stage / feature | Today | Gap |
+|---|---|---|
+| Boot / Connect / Announce | systemd `Restart=always`; no config, no secrets | all |
+| Sense | none | — |
+| Watch | 320×240 frame diff (`test_motion.py`) | `why` |
+| Capture | 4056×3040 stills ×3 to `~/dustycam_images` | one frame + meta |
+| Judge | `YoloNode` (PyTorch on desktop; TFLite stub raises on Pi) | TFLite on Pi |
+| Record / Deliver / Report | files on SD, rsync by hand; nothing uploaded | everything |
+| Serve | web dashboard :8000 (no auth, `/api/restart` open) | control plane on :8266 |
+| Setup mode | `WebSink` MJPEG + property editor; `test_cam_config.py` PyQt focus slider | setup page with focus score |
+| Layout | `software/pi5cam/` node graph + scripts; production entry point is a test file | `software/app|host` |
+| Tests | 2 real unit tests, 2 need `yolov8n.pt`, 2 are apps guarded by `importorskip` | separate apps from tests |

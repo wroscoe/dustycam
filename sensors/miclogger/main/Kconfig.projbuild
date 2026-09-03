@@ -23,7 +23,13 @@ menu "miclogger"
     config MIC_GAIN_SHIFT
         int "digital gain, bits (6dB each) after DC removal"
         default 4
+    config MIC_BRIDGE_MAC
+        string "espnowbridge devkit MAC (unicast ESP-NOW peer)"
+        default "38:44:be:cc:da:0c"
     config MIC_RING_CHUNKS
         int "PSRAM ring depth, chunks (jitter cushion = depth * chunk_s)"
-        default 6
+        default 24
+    config MIC_POWER_PROBE
+        bool "run the one-shot power-bank shutoff probe on new firmware"
+        default n
 endmenu

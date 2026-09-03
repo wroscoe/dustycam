@@ -1,0 +1,21 @@
+# Camera manifest — see docs/camera_standard.md §6. Reference implementation; truth as of 2026-09-03.
+id = "rt1062cam"
+board = "OpenMV Cam RT1062 R6 (OV5640, firmware 4.8.1, MicroPython 1.26)"
+runtime = "micropython"
+power = "always_on"
+status = "live"
+sensors = ["charge"]
+capabilities = ["preview", "focus_score", "motion", "full_res", "spool", "pull_config", "pull_firmware", "push_firmware", "setup_mode", "shoot"]
+[bundle]                  # cameras/common/micropython/bundle.py order -> software/build/app.py
+order = ["board.py", "common:uplink", "common:spool", "common:config", "common:otapull",
+         "common:motion", "common:camera", "common:focus", "common:control", "common:app"]
+
+[tuning]
+period_s = 10
+diff_min_frac = 0.04
+diff_l_thresh = 20
+heartbeat_s = 300
+telemetry_s = 60
+capture_framesize = "WQXGA2"
+capture_settle_ms = 400
+setup_secs = 300          # config.toml may still call it focus_secs; dustygen maps it

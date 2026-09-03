@@ -1,0 +1,29 @@
+DuckBisonRepeater>
+                    Connected! Device: DuckBisonRepeater version 1.11.0-6d32193 (Build: 30-Nov-2025)
+DuckBisonRepeater> ver
+DuckBisonRepeater> get name                             -> v1.11.0-6d32193 (Build: 30-Nov-2025)
+DuckBisonRepeater> get name
+DuckBisonRepeater> get radio                              -> > DuckBisonRepeater
+DuckBisonRepeater> get radio
+DuckBisonRepeater> get tx                           -> > 910.5250244,62.5,7,5
+DuckBisonRepeater> get tx
+DuckBisonRepeater> get af                           -> > 22
+DuckBisonRepeater> get af
+DuckBisonRepeater> get repeat                               -> > 1.0
+DuckBisonRepeater> get repeat
+DuckBisonRepeater> get freq                             -> > on
+DuckBisonRepeater> get freq
+DuckBisonRepeater> get lat                            -> > 910.5250244
+DuckBisonRepeater> get lat
+DuckBisonRepeater> get lon                            -> > 43.4795227
+DuckBisonRepeater> get lon
+DuckBisonRepeater> get flood.max                                  -> > -110.8831405
+DuckBisonRepeater> get flood.max
+DuckBisonRepeater> get advert.interval                                        -> > 64
+DuckBisonRepeater> get advert.interval
+DuckBisonRepeater> get public.key                                   -> > 0
+DuckBisonRepeater> get public.key
+DuckBisonRepeater> clock                          -> > DDC738D430BE044E2662D351A3AC871D5BEE4737D0DFA7DAAF84064BA77E94B4
+DuckBisonRepeater> clock
+DuckBisonRepeater> quit                         -> 10:46 - 22/6/2024 UTC
+DuckBisonRepeater> quit

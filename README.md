@@ -31,8 +31,8 @@ was removed; steps 2-3 currently run as the per-camera tooling under
 
 | Path | Contents |
 |---|---|
-| [`docs/`](docs/) | All documentation: build guides, the one-shot workflow, architecture notes and plans. |
-| [`cameras/`](cameras/) | One directory per camera. Each owns its `hardware/`, `software/`, and `tests/`. |
+| [`docs/`](docs/) | All documentation: build guides, the one-shot workflow, architecture notes and plans. **Start with [`docs/camera_standard.md`](docs/camera_standard.md)** (pipeline, setup/live modes, device↔sensorhub contract, layout) and [`docs/camera_recipe.md`](docs/camera_recipe.md) (the brief for writing a new camera). |
+| [`cameras/`](cameras/) | One directory per camera. Each owns its `hardware/`, `software/`, and `tests/`, a `camera.toml` manifest, and a "Standard mapping" section in its README saying how it meets the standard and where it does not. |
 | [`sensors/`](sensors/) | Non-camera sensor devices: `plantlogger/` (FeatherS3 soil sensor) and `miclogger/` (XIAO S3 Sense continuous mic). |
 | [`mesh/`](mesh/) | LoRa / MeshCore device side: radio firmware images + hardware notes (T114, Heltec V4). |
 | [`tools/configurator/`](tools/configurator/) | Static webapp for weighing power × compute × optics × battery across candidate camera builds. |
@@ -49,9 +49,11 @@ sensorhub's ingest serves to the boards.
 
 | Camera | Board | Software |
 |---|---|---|
-| [`pi5cam/`](cameras/pi5cam/) | Raspberry Pi 5 / Pi Zero 2 W | Linux + CPython; the node/pipeline runtime and the `dustycam` CLI |
-| [`esp32_s3_cam/`](cameras/esp32_s3_cam/) | Waveshare ESP32-S3-CAM + GOOUUU ESP32-S3-CAM | MicroPython logger + an ESP-IDF person-detection app (TFLite-micro); `software/camlogger/` = the deployed goouuu1 ESP-IDF firmware (posts frames to sensorhub, OTA via `/hd2/sensorhub/firmware/`) |
-| [`openmv_n6/`](cameras/openmv_n6/) | OpenMV N6 | MicroPython uploader with motion gating, MQTT telemetry, WiFi OTA |
+| [`pi5cam/`](cameras/pi5cam/) | Raspberry Pi 5 / Pi Zero 2 W | Linux + CPython node/pipeline prototype; deployed unit uploads nothing yet. Parked until the Pi is on the bench (see its README) |
+| [`esp32_s3_cam/`](cameras/esp32_s3_cam/) | GOOUUU ESP32-S3-CAM (goouuu1) | `software/camlogger/` ESP-IDF wake-cycle firmware: thumbnail motion diff, TFLite-micro animal gate, pull config + OTA; the older MicroPython logger and the Waveshare person-detection experiment are being archived |
+| [`openmv_n6/`](cameras/openmv_n6/) | OpenMV N6 | MicroPython uploader with motion gating, direct MQTT telemetry, push OTA; silent since 2026-08-20 |
+| [`openmv_rt1062/`](cameras/openmv_rt1062/) | OpenMV Cam RT1062 (R6) | **Live.** Motion-gated uploader, full-res 2592x1944 capture, phone focus/setup mode, push OTA; the reference for the standard. Printed case in `cameras/openmv_rt1062/case/` |
+| [`n6_speedcam/`](cameras/n6_speedcam/) | OpenMV N6 + HLK-LD2415H 24 GHz speed radar, solar | Radar-triggered capture with vehicle speed; tscircuit carrier, DFR0535 solar/LiPo power, radome enclosure (designed 2026-09-02, unbuilt) |
 
 Each owns its `hardware/`, `software/`, and `tests/`. A new camera means a new
 directory under `cameras/`, not a fork of an existing one.
@@ -81,9 +83,9 @@ and fill it in from `~/.dusty/`:
 
 | Board file | From template | For |
 |---|---|---|
-| `cameras/esp32_s3_cam/software/src/secrets.py` | `secrets_example.py` | MicroPython, copied to board flash |
-| `cameras/esp32_s3_cam/software/persondet_app/sdkconfig.secrets` | `sdkconfig.defaults` | compiled into ESP-IDF firmware |
-| `cameras/openmv_n6/software/secrets.py` | `secrets_example.py` | MicroPython, copied to `/flash` |
+| `cameras/openmv_rt1062/software/app/secrets.py` | `tools/dustygen cameras/openmv_rt1062 [--public] [--stage]` | MicroPython, USB copy to `/flash`; the same run stamps tuning, publishes the server config and bundles/stages the app (camera standard §5) |
+| `cameras/esp32_s3_cam/software/camlogger/sdkconfig.secrets` | hand-filled from `~/.dusty` (dustygen espidf: TODO, phase 4) | compiled into ESP-IDF firmware |
+| `cameras/openmv_n6/software/secrets.py` | `secrets_example.py` (dustygen: phase 3) | MicroPython, copied to `/flash`
 
 Give each board only the credentials it uses — the ESP32 has no MQTT client,
 so it has no business holding the MQTT password.

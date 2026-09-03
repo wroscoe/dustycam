@@ -1,0 +1,17 @@
+# Camera manifest — see docs/camera_standard.md §6. Truth as of 2026-09-02.
+id = "speedcam1"
+board = "OpenMV N6 + Hi-Link HLK-LD2415H radar, DFR0535 solar/LiPo, tscircuit carrier"
+runtime = "micropython"
+power = "wake_cycle"      # radar trigger wakes the board; SLEEP=False bench mode
+status = "designed"       # unbuilt; software is a skeleton + tested radar parser
+sensors = ["radar", "battery", "charge"]
+capabilities = ["sensor_trigger"]
+# to be built from docs/camera_recipe.md (phase 5): everything else
+
+[tuning]
+speed_min_kmh = 15
+trigger_hold_s = 2
+idle_s = 30
+heartbeat_s = 300
+telemetry_s = 60
+setup_secs = 300

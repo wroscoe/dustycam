@@ -1,0 +1,226 @@
+meta:
+  product_name: "Cam RT1062"
+  sku: "OMV-CAM-RT1062-V1/V2/V3 (PCB V4.2/V5/V6)"
+  filename: "OpenMV-Cam-RT1062-Datasheet.pdf"
+  modified_date: "2026-04-04"
+  version: "Rev 1"
+  cover_image: "boards/openmv-cam/pinout-openmv-cam-rt1062-ov5640.png"
+
+description: >
+  The OpenMV Cam RT1062 is built around NXP's high-performance i.MX RT1062 crossover MCU
+  running at 600 MHz, combining the real-time capabilities of a microcontroller with application
+  processor-level performance. It features 32 MB external SDRAM, 16 MB QUADSPI flash, the
+  OV5640 5 MP autofocus camera, integrated WiFi 802.11 a/b/g/n and Bluetooth 5.1, 10/100
+  Ethernet, a secure element, accelerometer, and USB-C High-Speed connectivity. Programmable
+  in MicroPython via the OpenMV IDE with TensorFlow Lite support.
+
+target_areas: >
+  Machine vision, edge AI, object detection, thermal camera, video streaming,
+  industrial automation, robotics, IoT, security, barcode/QR scanning.
+
+features:
+  - label: "600 MHz crossover MCU"
+    detail: "NXP i.MX RT1062 ARM Cortex-M7 at 600 MHz with hardware FPU and DSP."
+  - label: "Extended memory"
+    detail: "32 MB SDRAM (320 MB/s) and 16 MB QUADSPI flash (66 MB/s) for large frame buffers and AI models."
+  - label: "5 MP camera"
+    detail: "OV5640 autofocus camera module. M12 interchangeable lens mount. Removable module system."
+  - label: "WiFi + Bluetooth"
+    detail: "802.11 a/b/g/n WiFi with chip antenna (U.FL alternative). Bluetooth 5.1 (BR/EDR and BLE)."
+  - label: "Ethernet"
+    detail: "10/100 Mbps Ethernet with PoE support option."
+  - label: "Security"
+    detail: "NXP SE050 secure element for cryptographic protection and authentication."
+  - label: "USB-C High-Speed"
+    detail: "USB 2.0 High-Speed (480 Mbps) with EMI filtering and TVS protection. 1.5 A current limited."
+  - label: "Ultra-low power"
+    detail: "Less than 30 \u00B5A deepsleep current with on-board RTC. Power button on/off support."
+
+system_components:
+  - title: "Microcontroller"
+    components:
+      - name: "i.MX RT1062"
+        details: >
+          NXP i.MX RT1062 crossover MCU with ARM Cortex-M7 core running at 600 MHz. Features
+          hardware floating-point unit (FPU) and DSP instructions. Includes 1 MB on-chip SRAM.
+
+  - title: "Memory"
+    components:
+      - name: "On-chip SRAM"
+        details: "1 MB on-chip SRAM."
+      - name: "External SDRAM"
+        details: "32 MB SDRAM (IS42S16160G), 16-bit bus at 160 MHz (320 MB/s bandwidth)."
+      - name: "External QUADSPI Flash"
+        details: "16 MB QUADSPI NOR flash (IS25LPWP128F), 133 MHz (66 MB/s read)."
+      - name: "microSD Card"
+        details: "Supports SD (up to 2 GB), SDHC (up to 32 GB), SDXC (up to 2 TB). 25 MB/s read/write."
+
+  - title: "Connectivity"
+    components:
+      - name: "USB-C"
+        details: "USB 2.0 High-Speed (480 Mbps). 1.5 A current limited. EMI filtering (ECMF02-4CMX8) and TVS protection."
+      - name: "WiFi"
+        details: "802.11 a/b/g/n via CYW4334 combo chip. On-board chip antenna with U.FL connector as alternative."
+      - name: "Bluetooth"
+        details: "Bluetooth 5.1 (BR/EDR and BLE) via same WiFi/BT combo chip."
+      - name: "Ethernet"
+        details: "10/100 Mbps via KSZ8081RND PHY. PoE support option. Differential pairs (TXP/TXN, RXP/RXN) on header."
+      - name: "SPI"
+        details: "SPI bus on P0 (SS) / P1 (MOSI) / P2 (MISO) / P3 (SCLK). Up to 60 Mb/s."
+      - name: "I2C"
+        details: "I2C bus on P4 (SCL) / P5 (SDA). Up to 1 Mb/s."
+      - name: "CAN"
+        details: "CAN bus on P4 (TX) / P5 (RX). Up to 1 Mb/s."
+      - name: "UART"
+        details: "UART on header pins. Up to 20 Mb/s."
+
+  - title: "Camera System"
+    components:
+      - name: "Image Sensor"
+        details: "OV5640 1/4-inch 5 MP CMOS image sensor (2592x1944) with autofocus."
+      - name: "Image Performance"
+        details: "~40 FPS at QVGA (320x240) for simple algorithms. Full 5 MP JPEG capture."
+      - name: "Lens"
+        details: "M12 (S-mount) interchangeable lens mount."
+      - name: "Camera Interface"
+        details: "Removable camera module system. Compatible with alternative sensor modules."
+
+  - title: "Security"
+    components:
+      - name: "SE050C1HQ1"
+        details: "NXP SE050 secure element for cryptographic protection, secure authentication, and key storage."
+
+  - title: "Sensors"
+    components:
+      - name: "Accelerometer"
+        details: "MXC4005XC 3-axis accelerometer. 12-bit resolution, 2/4/8g selectable range."
+
+  - title: "LEDs"
+    components:
+      - name: "User RGB LED"
+        details: "1 user-controllable and dimmable RGB LED."
+      - name: "Power/Charge RGB LED"
+        details: "1 separate RGB LED for charge and power status indication."
+
+  - title: "Power Management"
+    components:
+      - name: "USB-C"
+        details: "Power input via USB-C. 1.5 A current limited."
+      - name: "VIN"
+        details: "External power input, 3.6 V to 5.0 V. Reverse supply protection via LM66200 ideal diode."
+      - name: "RAW"
+        details: "Always-on unregulated 3.6\u20135 V power. Active in on, off, and deepsleep modes."
+      - name: "LiPo Battery"
+        details: "3.7 V single-cell LiPo connector. 100 mA fast charge via BQ24075 charger IC."
+      - name: "Voltage Regulator"
+        details: "AP61300 step-down converter plus TCR2LE31 LDO."
+      - name: "Low-Power Mode"
+        details: "Less than 30 \u00B5A deepsleep current. On-board RTC. Power button: hold 5s to off, 1s to on."
+
+  - title: "Debug"
+    components:
+      - name: "JTAG"
+        details: "ARM 10-pin JTAG header. SEGGER J-Link compatible."
+
+ratings:
+  - title: "Recommended Operating Conditions"
+    headers: ["Symbol", "Description", "Min", "Typ", "Max", "Unit"]
+    rows:
+      - ["VUSB", "USB-C supply voltage", "4.5", "5.0", "5.5", "V"]
+      - ["VIN", "VIN supply voltage", "3.6", "5.0", "5.0", "V"]
+      - ["VIO", "I/O voltage", "—", "3.3", "3.3", "V"]
+      - ["IIO", "Per-pin current (sink/source)", "—", "—", "4", "mA"]
+      - ["IOUT", "3.3 V rail max current", "—", "—", "1000", "mA"]
+      - ["ISLEEP", "Deepsleep current", "—", "—", "30", "\u00B5A"]
+      - ["TOP", "Operating temperature", "-40", "25", "105", "\u00B0C"]
+
+connectors:
+  pinout_image: "boards/openmv-cam/pinout-openmv-cam-rt1062-ov5640.png"
+
+  groups:
+    - title: "Left Header (J1)"
+      headers: ["Pin", "Label", "Type", "Alternate Functions"]
+      rows:
+        - ["1", "P0", "I/O", "SPI SS"]
+        - ["2", "P1", "I/O", "SPI MOSI"]
+        - ["3", "P2", "I/O", "SPI MISO"]
+        - ["4", "P3", "I/O", "SPI SCLK"]
+        - ["5", "P4", "I/O", "I2C SCL / CAN TX"]
+        - ["6", "P5", "I/O", "I2C SDA / CAN RX"]
+        - ["7", "P6", "I/O", "ADC (12-bit, 3.3V tolerant)"]
+        - ["8", "3V3", "Power", "3.3 V regulated output (1 A max)"]
+        - ["9", "GND", "Power", "Ground"]
+
+    - title: "Right Header (J2)"
+      headers: ["Pin", "Label", "Type", "Alternate Functions"]
+      rows:
+        - ["1", "P11", "Input", "Reset (connect to GND to reset)"]
+        - ["2", "P10", "I/O", "Wakeup (connect or ground to wake)"]
+        - ["3", "P9", "I/O", "Frame Sync (input/output)"]
+        - ["4", "P8", "I/O", "Servo / PWM"]
+        - ["5", "P7", "I/O", "Servo / PWM"]
+        - ["6", "P14", "I/O", "UART TX (secondary)"]
+        - ["7", "VIN", "Power", "3.6\u20135.0 V input"]
+        - ["8", "GND", "Power", "Ground"]
+
+    - title: "Ethernet Header Pins"
+      headers: ["Pin", "Label", "Type", "Function"]
+      rows:
+        - ["1", "ETH-TXP", "Ethernet", "TX positive"]
+        - ["2", "ETH-TXN", "Ethernet", "TX negative"]
+        - ["3", "ETH-RXP", "Ethernet", "RX positive"]
+        - ["4", "ETH-RXN", "Ethernet", "RX negative"]
+        - ["5", "ETH-LED", "Output", "Ethernet status LED"]
+
+functional_overview:
+  power_tree:
+    text: >
+      The OpenMV Cam RT1062 can be powered from USB-C (1.5 A limited), VIN (3.6\u20135.0 V with
+      LM66200 reverse protection), RAW (always-on, active in all power modes), or a 3.7 V LiPo
+      battery (BQ24075 charger, 100 mA fast charge). The AP61300 step-down converter and
+      TCR2LE31 LDO provide regulated 3.3 V. Deepsleep current is less than 30 \u00B5A with
+      on-board RTC. Power button supports hold-to-off (5s) and press-to-wake (1s).
+
+mechanical:
+  specs:
+    - dimension: "Weight"
+      value: "70 g"
+    - dimension: "Lens Mount"
+      value: "M12 (S-mount), interchangeable"
+    - dimension: "Mounting"
+      value: "2 mounting holes"
+    - dimension: "Operating Temperature"
+      value: "-40\u00B0C to +85\u00B0C"
+
+certifications:
+  headers: ["Certification", "Region", "Details"]
+  table:
+    - ["RoHS", "EU", "Compliant with EU Directive 2011/65/EU (RoHS 2) and amendment 2015/863 (RoHS 3). All components and solder are lead-free."]
+    - ["REACH", "EU", "Compliant with EU Regulation (EC) No 1907/2006."]
+
+company:
+  - field: "Website"
+    value: "https://openmv.io"
+  - field: "Documentation"
+    value: "https://docs.openmv.io"
+  - field: "Support"
+    value: "https://forums.openmv.io"
+
+references:
+  - name: "Product Page"
+    link: "https://openmv.io/products/openmv-cam-rt"
+  - name: "Documentation"
+    link: "https://docs.openmv.io"
+  - name: "Community Forum"
+    link: "https://forums.openmv.io"
+  - name: "i.MX RT1062"
+    link: "https://www.nxp.com/products/processors-and-microcontrollers/arm-microcontrollers/i-mx-rt-crossover-mcus/i-mx-rt1060-crossover-mcu:i.MX-RT1060"
+  - name: "OV5640 Image Sensor"
+    link: "https://www.ovt.com/products/sensor.php?id=101"
+  - name: "OpenMV IDE"
+    link: "https://openmv.io/pages/download"
+
+revision_history:
+  - date: "2026-04-04"
+    revision: "Rev 1"
+    changes: "Initial public release."

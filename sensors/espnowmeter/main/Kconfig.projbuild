@@ -1,0 +1,11 @@
+menu "espnowmeter"
+    config METER_CHANNEL
+        int "ESP-NOW channel to sniff"
+        default 1
+    config METER_BRIDGE_MAC
+        string "espnowbridge MAC (unicast SS reports)"
+        default "38:44:be:cc:da:0c"
+    config METER_LED_GPIO
+        int "LED gpio"
+        default 35
+endmenu

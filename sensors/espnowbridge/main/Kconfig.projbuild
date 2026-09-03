@@ -1,0 +1,26 @@
+menu "espnowbridge"
+    config BR_WIFI_SSID
+        string "WiFi SSID"
+        default ""
+    config BR_WIFI_PASS
+        string "WiFi password"
+        default ""
+    config BR_AP_BSSID
+        string "primary router 2.4GHz BSSID to pin to (fixes the espnow channel)"
+        default "7c:d9:5c:99:3b:2b"
+    config BR_SERVER_HOST
+        string "sensorhub host/IP"
+        default ""
+    config BR_SERVER_PORT
+        int "sensorhub port"
+        default 8088
+    config BR_MIC_DEVICE
+        string "device name audio chunks are posted under"
+        default "xiaomic1"
+    config BR_DEVICE_NAME
+        string "this bridge's firmware identity for OTA"
+        default "espnowbridge"
+    config BR_MQTT_PASS
+        string "mosquitto password for user espnow"
+        default ""
+endmenu

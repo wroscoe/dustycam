@@ -1,0 +1,19 @@
+# Camera manifest — see docs/camera_standard.md §6. Truth as of 2026-09-02.
+# Decision 2026-09-02: this directory becomes the GOOUUU camlogger camera only;
+# the MicroPython logger and persondet_app (Waveshare board) move to archive/ in phase 4.
+id = "goouuu1"
+board = "GOOUUU ESP32-S3-CAM (OV2640, 8 MB PSRAM), ESP-IDF 5.5"
+runtime = "espidf"
+power = "wake_cycle"
+status = "built"          # silent since 2026-08-18; Docker build path broken post-restructure
+sensors = []
+capabilities = ["motion", "gate_model", "spool", "pull_config", "pull_firmware", "recovery_mode"]
+# not yet: preview/setup_mode page (capture mode is the seed), standard meta keys (seq/cfg/mode), dustygen for sdkconfig.secrets
+
+[tuning]
+wake_s = 60
+heartbeat_n = 10
+motion_threshold = 8
+gate_pct = 50
+audit_1_in = 50
+setup_secs = 300

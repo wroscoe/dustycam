@@ -43,3 +43,19 @@ Board on the bench enumerates as `303a:1001 Espressif USB JTAG/serial debug unit
 - Heltec WiFi LoRa 32 **V4** board itself — measured envelope + STEP for `amz-heltec-lora-v4` were kept in the parts warehouse (no longer on this machine)
 - MeshCore firmware build/variant for Heltec V4, its flash offsets
 - MeshCore serial companion protocol → webserver integration
+
+## Outcome (2026-09-01)
+- Flashed `heltec_v4_companion_radio_usb-v1.17.0-merged.bin` (sha256 94abbf9e…, identical to
+  flasher.meshcore.io) with `ESPTOOL_STUB_VERSION=2 uvx esptool --port <by-id> erase-flash`
+  then `write-flash 0x0 <bin> --after watchdog-reset`. Wrote + verified in 6 s, no chunking needed.
+- Board then vanished from USB for good on the hub port (1-1.1.4): descriptor read -110 / -71,
+  RST didn't help, OLED showed MeshCore so the app was running. **Fix: rear motherboard port,
+  no hub** — enumerated as 303a:1001 immediately (firmware uses HW USB-Serial/JTAG, same PID).
+- Config: `uvx meshcore-cli -s <by-id> set radio 910.525,62.5,7,5 set name CornsnowBase` (renamed from wroscoe-v4 same day).
+- meshbase.service repointed at the by-id path; base station connected, publishes home/mesh/#.
+- The GitHub issue #2734 / PR #3006 (ARDUINO_USB_MODE=0 on heltec_v4) is already fixed in v1.17.0 —
+  not the cause here.
+- Follow-up: the same board on a **powered** hub (Realtek 0bda:5411, one level deep, bus 3)
+  enumerated within seconds → the failing path was the Genesys hub with its power adapter NOT plugged in → 05e3:0610 → Terminus
+  1a40:0101 chain (100 mA budget, both falsely claim self-powered). No battery attached.
+  Sarg lesson recorded (private): heltec-v4-running-meshcore-companion-radio-usb-never.

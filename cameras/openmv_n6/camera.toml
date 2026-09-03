@@ -1,0 +1,21 @@
+# Camera manifest — see docs/camera_standard.md §6. Truth as of 2026-09-02.
+id = "n6cam"
+board = "OpenMV N6 (STM32N657, firmware 5.0.0, MicroPython 1.28; legacy sensor API)"
+runtime = "micropython"
+power = "always_on"       # sensorhub_cam_lp.py = WiFi-off-between-deliveries variant; becomes a setting in phase 3
+status = "built"          # on the bench 2026-09-03 for the port to the standard (phase 3)
+sensors = ["battery", "charge", "imu_speed"]
+capabilities = ["preview", "focus_score", "motion", "full_res", "spool", "pull_config", "pull_firmware", "push_firmware", "setup_mode", "shoot"]
+[bundle]
+order = ["board.py", "common:uplink", "common:spool", "common:config", "common:otapull",
+         "common:motion", "common:camera", "common:focus", "common:control", "common:app"]
+
+[tuning]
+period_s = 10
+diff_min_frac = 0.005
+diff_l_thresh = 8
+heartbeat_s = 300
+telemetry_s = 60
+capture_framesize = "HD"      # 1280x800 native; RGB565 + software JPEG (CAPTURE_MODE in board.py)
+capture_settle_ms = 400
+setup_secs = 300

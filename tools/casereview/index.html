@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Case review</title>
+<style>
+  :root {
+    --bg: #f4f6f9; --panel: #fff; --ink: #16202c; --muted: #6b7a8d;
+    --line: #dbe2ea; --accent: #2f6df6; --open: #e8590c; --done: #2f9e44;
+    --shadow: 0 1px 3px rgba(16,32,48,.10), 0 6px 20px rgba(16,32,48,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #11161c; --panel: #19212a; --ink: #e6edf5; --muted: #8b9bb0;
+      --line: #2a3644; --accent: #5b8cff; --open: #ff922b; --done: #51cf66;
+      --shadow: 0 1px 3px rgba(0,0,0,.5), 0 6px 20px rgba(0,0,0,.35);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  header {
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+    padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--panel);
+    position: sticky; top: 0; z-index: 20;
+  }
+  header h1 { font-size: 16px; margin: 0; font-weight: 650; letter-spacing: -.01em; }
+  header .hint { color: var(--muted); font-size: 13px; }
+  header .spacer { flex: 1; }
+  .layout { display: grid; grid-template-columns: 232px minmax(0,1fr) 330px; gap: 18px; padding: 18px 20px; align-items: start; }
+  @media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); }
+  nav { padding: 8px; position: sticky; top: 68px; }
+  nav .group { color: var(--muted); font-size: 11px; text-transform: uppercase;
+               letter-spacing: .07em; padding: 12px 10px 6px; font-weight: 600; }
+  nav button {
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    width: 100%; text-align: left; padding: 8px 10px; border: 0; border-radius: 7px;
+    background: none; color: var(--ink); font: inherit; font-size: 14px; cursor: pointer;
+  }
+  nav button:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  nav button[aria-current="true"] { background: var(--accent); color: #fff; font-weight: 600; }
+  .count { font-size: 11px; min-width: 19px; height: 19px; padding: 0 6px; border-radius: 10px;
+           display: grid; place-items: center; background: var(--open); color: #fff; font-weight: 700; }
+  nav button[aria-current="true"] .count { background: rgba(255,255,255,.28); }
+  .count.zero { display: none; }
+
+  .stage { padding: 14px; }
+  .views { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .views button {
+    padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line);
+    background: none; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer;
+  }
+  .views button[aria-current="true"] { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .views .badge { font-size: 10px; font-weight: 700; margin-left: 5px; opacity: .85; }
+  .viewhelp { color: var(--muted); font-size: 13px; margin: 0 0 10px; min-height: 1.5em; }
+  .frame { position: relative; line-height: 0; border-radius: 8px; overflow: hidden;
+           border: 1px solid var(--line); cursor: crosshair; touch-action: manipulation; }
+  .frame img { width: 100%; height: auto; display: block; }
+  .pin {
+    position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px;
+    border-radius: 50%; border: 2.5px solid #fff; background: var(--open); color: #fff;
+    font-size: 12px; font-weight: 700; display: grid; place-items: center; cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,.45); padding: 0; line-height: 1;
+  }
+  .pin.done { background: var(--done); }
+  .pin.sel { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .empty { padding: 40px 16px; text-align: center; color: var(--muted); }
+
+  aside { padding: 14px; position: sticky; top: 68px; max-height: calc(100vh - 90px); overflow: auto; }
+  aside h2 { font-size: 13px; margin: 0 0 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  .cmt { border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; margin-bottom: 8px; }
+  .cmt.sel { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent); }
+  .cmt .top { display: flex; gap: 8px; align-items: center; margin-bottom: 5px; }
+  .cmt .num { width: 20px; height: 20px; border-radius: 50%; background: var(--open); color: #fff;
+              font-size: 11px; font-weight: 700; display: grid; place-items: center; flex: none; }
+  .cmt.done .num { background: var(--done); }
+  .cmt .where { font-size: 11px; color: var(--muted); }
+  .cmt .txt { white-space: pre-wrap; word-break: break-word; }
+  .cmt.done .txt { text-decoration: line-through; opacity: .6; }
+  .cmt .acts { display: flex; gap: 10px; margin-top: 7px; }
+  .cmt .acts button { border: 0; background: none; color: var(--muted); font: inherit;
+                      font-size: 12px; cursor: pointer; padding: 0; }
+  .cmt .acts button:hover { color: var(--accent); text-decoration: underline; }
+  dialog {
+    border: 1px solid var(--line); border-radius: 10px; padding: 16px; width: min(420px, 92vw);
+    background: var(--panel); color: var(--ink); box-shadow: var(--shadow);
+  }
+  dialog::backdrop { background: rgba(8,14,22,.45); }
+  dialog h3 { margin: 0 0 4px; font-size: 15px; }
+  dialog p { margin: 0 0 10px; color: var(--muted); font-size: 12px; }
+  textarea { width: 100%; min-height: 92px; padding: 9px; border-radius: 7px; resize: vertical;
+             border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; }
+  .row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
+  .btn { padding: 7px 14px; border-radius: 7px; border: 1px solid var(--line);
+         background: var(--bg); color: var(--ink); font: inherit; cursor: pointer; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .toggle { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Case review</h1>
+  <span class="hint">Click the drawing to drop a pin. Notes save to <code>comments.json</code>.</span>
+  <span class="spacer"></span>
+  <label class="toggle"><input type="checkbox" id="showDone"> show resolved</label>
+  <span class="hint" id="tally"></span>
+</header>
+
+<div class="layout">
+  <nav class="card" id="nav"></nav>
+  <main class="card stage">
+    <div class="views" id="views"></div>
+    <p class="viewhelp" id="viewhelp"></p>
+    <div class="frame" id="frame"></div>
+  </main>
+  <aside class="card">
+    <h2>Notes on this view</h2>
+    <div id="list"></div>
+  </aside>
+</div>
+
+<dialog id="dlg">
+  <h3 id="dlgTitle">New note</h3>
+  <p id="dlgWhere"></p>
+  <textarea id="dlgText" placeholder="What should change here?"></textarea>
+  <div class="row">
+    <button class="btn" id="dlgCancel">Cancel</button>
+    <button class="btn primary" id="dlgSave">Save</button>
+  </div>
+</dialog>
+
+<script>
+const S = { targets: [], comments: [], designs: {}, target: null, view: null, sel: null, pending: null };
+const $ = id => document.getElementById(id);
+const cur = () => S.targets.find(t => t.target === S.target);
+const showDone = () => $('showDone').checked;
+
+async function api(path, body) {
+  const r = await fetch(path, body ? {
+    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)
+  } : undefined);
+  if (!r.ok) { alert('Save failed: ' + (await r.text())); throw new Error('api'); }
+  return r.json();
+}
+
+async function boot() {
+  const d = await api('/api/state');
+  S.targets = d.targets; S.comments = d.comments; S.designs = d.designs;
+  if (!S.targets.length) { $('frame').innerHTML = '<p class="empty">No renders found.</p>'; return; }
+  const want = location.hash.slice(1).split('/');
+  const t = S.targets.find(x => x.target === want[0]) || S.targets[0];
+  select(t.target, want[1] && t.views[want[1]] ? want[1] : t.order[0]);
+}
+
+function select(target, view) {
+  S.target = target; S.view = view; S.sel = null;
+  location.hash = target + '/' + view;
+  render();
+}
+
+// visible = comments for the current target+view, honouring the resolved filter
+function visible() {
+  return S.comments.filter(c => c.target === S.target && c.view === S.view
+                             && (showDone() || c.status !== 'done'));
+}
+
+function render() {
+  const t = cur();
+
+  // sidebar, grouped by design
+  const nav = $('nav'); nav.innerHTML = '';
+  let group = null;
+  for (const x of S.targets) {
+    if (x.design !== group) {
+      group = x.design;
+      const h = document.createElement('div');
+      h.className = 'group'; h.textContent = S.designs[group] || group;
+      nav.appendChild(h);
+    }
+    const open = S.comments.filter(c => c.target === x.target && c.status !== 'done').length;
+    const b = document.createElement('button');
+    b.setAttribute('aria-current', String(x.target === S.target));
+    b.innerHTML = `<span>${x.label}</span><span class="count${open ? '' : ' zero'}">${open}</span>`;
+    b.onclick = () => select(x.target, x.views[S.view] ? S.view : x.order[0]);
+    nav.appendChild(b);
+  }
+
+  // view tabs
+  const vs = $('views'); vs.innerHTML = '';
+  for (const v of t.order) {
+    const n = S.comments.filter(c => c.target === t.target && c.view === v && c.status !== 'done').length;
+    const b = document.createElement('button');
+    b.setAttribute('aria-current', String(v === S.view));
+    b.innerHTML = v + (n ? ` <span class="badge">${n}</span>` : '');
+    b.onclick = () => select(t.target, v);
+    vs.appendChild(b);
+  }
+  $('viewhelp').textContent = (t.help && t.help[S.view]) || '';
+
+  // drawing + pins
+  const frame = $('frame'); frame.innerHTML = '';
+  const img = new Image();
+  img.src = '/render/' + t.views[S.view];
+  img.alt = t.label + ' ' + S.view;
+  frame.appendChild(img);
+  for (const c of visible()) {
+    const p = document.createElement('button');
+    p.className = 'pin' + (c.status === 'done' ? ' done' : '') + (c.id === S.sel ? ' sel' : '');
+    p.style.left = (c.x * 100) + '%';
+    p.style.top = (c.y * 100) + '%';
+    p.textContent = c.n;
+    p.title = c.text;
+    p.onclick = e => { e.stopPropagation(); S.sel = (S.sel === c.id ? null : c.id); render(); };
+    frame.appendChild(p);
+  }
+  frame.onclick = e => {
+    if (e.target !== img) return;                   // ignore clicks on a pin
+    const r = img.getBoundingClientRect();
+    openDialog(null, (e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
+  };
+
+  // notes for this view
+  const list = $('list'); list.innerHTML = '';
+  const vis = visible();
+  if (!vis.length) list.innerHTML = '<p class="empty">No notes on this view yet.</p>';
+  for (const c of vis) {
+    const el = document.createElement('div');
+    el.className = 'cmt' + (c.status === 'done' ? ' done' : '') + (c.id === S.sel ? ' sel' : '');
+    el.innerHTML = `<div class="top"><span class="num">${c.n}</span>
+        <span class="where">${c.created.replace('T', ' ').replace('Z', '')}</span></div>
+        <div class="txt"></div>
+        <div class="acts">
+          <button data-a="done">${c.status === 'done' ? 'reopen' : 'resolve'}</button>
+          <button data-a="edit">edit</button>
+          <button data-a="del">delete</button>
+        </div>`;
+    el.querySelector('.txt').textContent = c.text;
+    el.onclick = () => { S.sel = c.id; render(); };
+    el.querySelector('[data-a=done]').onclick = async e => {
+      e.stopPropagation();
+      S.comments = (await api('/api/update', {id: c.id, status: c.status === 'done' ? 'open' : 'done'})).comments;
+      render();
+    };
+    el.querySelector('[data-a=edit]').onclick = e => { e.stopPropagation(); openDialog(c); };
+    el.querySelector('[data-a=del]').onclick = async e => {
+      e.stopPropagation();
+      if (!confirm('Delete note ' + c.n + '?')) return;
+      S.comments = (await api('/api/delete', {id: c.id})).comments;
+      S.sel = null; render();
+    };
+    list.appendChild(el);
+  }
+
+  const open = S.comments.filter(c => c.status !== 'done').length;
+  $('tally').textContent = `${open} open / ${S.comments.length} total`;
+}
+
+function openDialog(existing, x, y) {
+  S.pending = existing ? {id: existing.id} : {x, y};
+  $('dlgTitle').textContent = existing ? 'Edit note ' + existing.n : 'New note';
+  $('dlgWhere').textContent = cur().label + ' - ' + S.view;
+  $('dlgText').value = existing ? existing.text : '';
+  $('dlg').showModal();
+  $('dlgText').focus();
+}
+
+$('dlgCancel').onclick = () => { $('dlg').close(); S.pending = null; };
+$('dlgSave').onclick = async () => {
+  const text = $('dlgText').value.trim();
+  if (!text) { $('dlg').close(); return; }
+  const p = S.pending;
+  S.comments = (p.id
+    ? (await api('/api/update', {id: p.id, text})).comments
+    : (await api('/api/comment', {target: S.target, view: S.view, x: p.x, y: p.y, text})).comments);
+  $('dlg').close(); S.pending = null; render();
+};
+// ctrl/cmd-enter saves, matching every other comment box in the world
+$('dlgText').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) $('dlgSave').click();
+});
+$('showDone').onchange = render;
+addEventListener('hashchange', () => {
+  const [t, v] = location.hash.slice(1).split('/');
+  if (t && t !== S.target) select(t, v || 'iso');
+});
+boot();
+</script>
+</body>
+</html>

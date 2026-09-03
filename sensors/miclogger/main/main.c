@@ -11,6 +11,7 @@
  *
  *   USB-powered, always on: no deep sleep, unlike camlogger.
  */
+#include <stdio.h>
 #include <string.h>
 #include <math.h>
 #include "freertos/FreeRTOS.h"
@@ -30,6 +31,8 @@
 #include "esp_sleep.h"
 #include "nvs_flash.h"
 #include "driver/i2s_pdm.h"
+#include "esp_now.h"
+#include "freertos/semphr.h"
 
 static const char *TAG = "miclogger";
 
@@ -59,9 +62,13 @@ static EventGroupHandle_t s_events;
 
 /* ---------------- wifi (camlogger pattern) ---------------- */
 
+static volatile bool s_no_reconnect;   /* espnow mode: leave channel alone */
+
 static void wifi_event(void *arg, esp_event_base_t base, int32_t id,
                        void *data)
 {
+    if (s_no_reconnect)
+        return;
     if (base == WIFI_EVENT && id == WIFI_EVENT_STA_START) {
         esp_wifi_connect();
     } else if (base == WIFI_EVENT && id == WIFI_EVENT_STA_DISCONNECTED) {
@@ -92,6 +99,14 @@ static void wifi_start(void)
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta));
     ESP_ERROR_CHECK(esp_wifi_start());
+    /* PS_NONE keeps draw ~100mA+: below ~50mA the USB pack's auto-
+     * shutoff latches off within 45s (measured) — modem-sleep between
+     * posts was dipping into exactly that zone */
+    ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
+    /* LR alongside bgn: normal AP association, long-range ESP-NOW */
+    ESP_ERROR_CHECK(esp_wifi_set_protocol(
+        WIFI_IF_STA, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G |
+        WIFI_PROTOCOL_11N | WIFI_PROTOCOL_LR));
 }
 
 static bool wifi_wait(int timeout_ms)
@@ -105,6 +120,19 @@ static int wifi_rssi(void)
 {
     wifi_ap_record_t ap;
     return esp_wifi_sta_get_ap_info(&ap) == ESP_OK ? ap.rssi : 0;
+}
+
+/* "aabbccddeeff/6" — associated AP + channel, for mesh-roaming forensics */
+static const char *wifi_bssid(void)
+{
+    static char s[20];
+    wifi_ap_record_t ap;
+    if (esp_wifi_sta_get_ap_info(&ap) != ESP_OK)
+        return "?";
+    snprintf(s, sizeof(s), "%02x%02x%02x%02x%02x%02x/%d",
+             ap.bssid[0], ap.bssid[1], ap.bssid[2],
+             ap.bssid[3], ap.bssid[4], ap.bssid[5], ap.primary);
+    return s;
 }
 
 /* ---------------- wav ---------------- */
@@ -142,6 +170,12 @@ static void mic_init(void)
             I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_MONO),
         .gpio_cfg = { .clk = MIC_GPIO_CLK, .din = MIC_GPIO_DIN },
     };
+    /* PDM mic clock = rate x downsample. The default 64x ratio puts an
+     * 8 kHz rate at 512 kHz mic clock -- below the MSM261's ~1 MHz
+     * minimum, and it degrades to broadband hiss. 128x restores
+     * 1.024 MHz at 8 kHz. */
+    if (RATE <= 8000)
+        pc.clk_cfg.dn_sample_mode = I2S_PDM_DSR_16S;
     ESP_ERROR_CHECK(i2s_channel_init_pdm_rx_mode(s_rx, &pc));
     ESP_ERROR_CHECK(i2s_channel_enable(s_rx));
 }
@@ -225,10 +259,11 @@ static bool post_wav(const chunk_t *c)
              CONFIG_MIC_DEVICE_NAME);
     snprintf(meta, sizeof(meta),
              "{\"seq\":%lu,\"rate\":%d,\"ms\":%d,\"rms\":%lu,"
-             "\"peak\":%lu,\"dropped\":%lu,\"rssi\":%d,\"fw\":\"%s\"%s}",
+             "\"peak\":%lu,\"dropped\":%lu,\"rssi\":%d,"
+             "\"bssid\":\"%s\",\"fw\":\"%s\"%s}",
              (unsigned long)c->seq, RATE, CHUNK_S * 1000,
              (unsigned long)c->rms, (unsigned long)c->peak,
-             (unsigned long)c->dropped, wifi_rssi(),
+             (unsigned long)c->dropped, wifi_rssi(), wifi_bssid(),
              esp_app_get_description()->version, s_extra_meta);
     esp_http_client_config_t hc = {
         .url = url, .method = HTTP_METHOD_POST, .timeout_ms = 8000,
@@ -289,26 +324,27 @@ static void check_ota_once(void)
     ESP_LOGE(TAG, "OTA failed");
 }
 
-static void upload_task(void *arg)
+/* Post chunks over HTTP until wifi looks dead: 6 consecutive failures.
+ * Chunks are never retried — the ring is the buffer, and stale audio is
+ * worth less than fresh audio. */
+static void wifi_phase(void)
 {
     int64_t last_ota = 0;
-    for (;;) {
+    int fails = 0;
+    while (fails < 6) {
         int idx;
-        if (xQueueReceive(s_full_q, &idx, portMAX_DELAY) != pdTRUE)
+        if (xQueueReceive(s_full_q, &idx, pdMS_TO_TICKS(10000)) != pdTRUE)
             continue;
         chunk_t *c = &s_ring[idx];
-        bool sent = false;
-        if (wifi_wait(10000)) {
-            sent = post_wav(c);
-            if (sent)
-                mark_valid_once();
+        bool sent = wifi_wait(8000) && post_wav(c);
+        if (sent) {
+            mark_valid_once();
+            fails = 0;
+        } else {
+            fails++;
+            ESP_LOGW(TAG, "chunk %lu upload failed (%d consecutive)",
+                     (unsigned long)c->seq, fails);
         }
-        if (!sent)
-            ESP_LOGW(TAG, "chunk %lu upload failed (ring holds %d)",
-                     (unsigned long)c->seq,
-                     (int)uxQueueMessagesWaiting(s_full_q));
-        /* failed chunk is not retried: the ring itself is the buffer,
-         * and stale audio is worth less than fresh audio */
         xQueueSend(s_free_q, &idx, 0);
 
         int64_t now = esp_timer_get_time();
@@ -328,6 +364,7 @@ static void upload_task(void *arg)
  * outcome!) does not re-run it — the board falls through to normal
  * continuous streaming instead. */
 
+#if CONFIG_MIC_POWER_PROBE
 static const int PROBE_SLEEPS[] = {0, 5, 10, 20, 30, 45, 60, 90,
                                    120, 180, 300};
 #define PROBE_CYCLES 6           /* bursts per stage */
@@ -384,6 +421,171 @@ static void power_probe(void)
     s_extra_meta[0] = 0;
     ESP_LOGW(TAG, "probe complete, resuming continuous streaming");
 }
+#endif /* CONFIG_MIC_POWER_PROBE */
+
+/* ---------------- transport state machine ----------------
+ * Wi-Fi is preferred (OTA lives there). When it is unreachable, stream
+ * the same chunks over ESP-NOW *unicast* to the espnowbridge devkit --
+ * unicast so every frame is MAC-ACKed and delivery is measurable. The
+ * loop alternates: wifi dead -> espnow; espnow dead (3 chunks with ~no
+ * ACKed frames) -> retry wifi; a healthy espnow link still retries
+ * wifi every 15 min so an upstairs board finds its way back to OTA.
+ * Payload: "MX" | type u8 (0 data, 1 meta) | chunk_seq u32 | frame_idx
+ * u16 | n_frames u16 | body. */
+
+#define ESPNOW_CHANNEL        1
+#define ESPNOW_SLICE          1000
+#define ESPNOW_DEAD_CHUNKS    3
+#define WIFI_RETRY_PERIOD_US  (15LL * 60 * 1000000)
+#define WIFI_JOIN_WAIT_MS     45000
+#define WIFI_REJOIN_WAIT_MS   30000
+
+static SemaphoreHandle_t s_now_sent;
+static bool s_use_lr = true;      /* alternates on totally-dead phases */
+static volatile bool s_last_ack;
+static uint8_t s_bridge_mac[6];
+
+static void now_send_cb(const esp_now_send_info_t *info,
+                        esp_now_send_status_t status)
+{
+    s_last_ack = status == ESP_NOW_SEND_SUCCESS;
+    xSemaphoreGive(s_now_sent);
+}
+
+/* send until the bridge MAC-ACKs, up to 3 transmissions; true = ACKed.
+ * Retransmits turned a measured 45% frame loss at -86 dBm into the
+ * exponent: p^3 residual instead of p. */
+static bool now_send(const uint8_t *buf, size_t len)
+{
+    for (int try = 0; try < 3; try++) {
+        if (esp_now_send(s_bridge_mac, buf, len) != ESP_OK) {
+            vTaskDelay(pdMS_TO_TICKS(5));   /* TX queue full: back off */
+            continue;
+        }
+        s_last_ack = false;
+        xSemaphoreTake(s_now_sent, pdMS_TO_TICKS(150));
+        if (s_last_ack)
+            return true;
+    }
+    return false;
+}
+
+static void espnow_start(void)
+{
+    s_no_reconnect = true;
+    esp_wifi_disconnect();
+    vTaskDelay(pdMS_TO_TICKS(500));   /* let any in-flight scan finish */
+    ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
+    ESP_ERROR_CHECK(esp_wifi_set_channel(ESPNOW_CHANNEL,
+                                         WIFI_SECOND_CHAN_NONE));
+    ESP_ERROR_CHECK(esp_now_init());
+    if (!s_now_sent)
+        s_now_sent = xSemaphoreCreateBinary();
+    esp_now_register_send_cb(now_send_cb);
+    esp_now_peer_info_t peer = { 0 };
+    memcpy(peer.peer_addr, s_bridge_mac, 6);
+    peer.channel = ESPNOW_CHANNEL;
+    peer.ifidx = WIFI_IF_STA;
+    ESP_ERROR_CHECK(esp_now_add_peer(&peer));
+    /* LR 250K buys ~+7 dB; if the whole previous espnow phase got zero
+     * ACKs, alternate back to the stock 1M rate — covers any LR quirk
+     * on either end without stranding the board. Never fatal. */
+    esp_err_t rerr;
+    if (s_use_lr) {
+        esp_now_rate_config_t rc = {
+            .phymode = WIFI_PHY_MODE_LR,
+            .rate = WIFI_PHY_RATE_LORA_250K,
+        };
+        rerr = esp_now_set_peer_rate_config(s_bridge_mac, &rc);
+    } else {
+        esp_now_rate_config_t rc = {
+            .phymode = WIFI_PHY_MODE_11B,
+            .rate = WIFI_PHY_RATE_1M_L,
+        };
+        rerr = esp_now_set_peer_rate_config(s_bridge_mac, &rc);
+    }
+    if (rerr != ESP_OK)
+        ESP_LOGW(TAG, "rate config (%s): %s", s_use_lr ? "LR" : "1M",
+                 esp_err_to_name(rerr));
+    ESP_LOGW(TAG, "espnow rate: %s", s_use_lr ? "LR-250K" : "11b-1M");
+}
+
+static void espnow_stop(void)
+{
+    esp_now_deinit();
+    s_no_reconnect = false;
+}
+
+/* true if the bridge ACKed a useful share of the chunk's frames */
+static bool espnow_send_chunk(const chunk_t *c)
+{
+    static uint8_t frame[11 + ESPNOW_SLICE];
+    frame[0] = 'M'; frame[1] = 'X';
+    uint16_t n = (CHUNK_BYTES + ESPNOW_SLICE - 1) / ESPNOW_SLICE;
+    uint32_t delivered = 0;
+    uint32_t meta[6] = { RATE, CHUNK_S * 1000, c->rms, c->peak,
+                         c->dropped, CHUNK_BYTES };
+    frame[2] = 1;
+    memcpy(frame + 3, &c->seq, 4);
+    memset(frame + 7, 0, 2);
+    memcpy(frame + 9, &n, 2);
+    memcpy(frame + 11, meta, sizeof(meta));
+    now_send(frame, 11 + sizeof(meta));
+    frame[2] = 0;
+    for (uint16_t i = 0; i < n; i++) {
+        uint16_t fi = i + 1;
+        size_t off = (size_t)i * ESPNOW_SLICE;
+        size_t len = CHUNK_BYTES - off;
+        if (len > ESPNOW_SLICE) len = ESPNOW_SLICE;
+        memcpy(frame + 7, &fi, 2);
+        memcpy(frame + 11, c->buf + WAV_HDR + off, len);
+        if (now_send(frame, 11 + len))
+            delivered++;
+    }
+    return delivered > n / 4;
+}
+
+static void transport_task(void *arg)
+{
+    bool first = true;
+    for (;;) {
+        /* ---- Wi-Fi phase (preferred: OTA lives here) ---- */
+        s_no_reconnect = false;
+        esp_wifi_connect();
+        if (wifi_wait(first ? WIFI_JOIN_WAIT_MS : WIFI_REJOIN_WAIT_MS)) {
+            ESP_LOGW(TAG, "transport: wifi via %s", wifi_bssid());
+            wifi_phase();                 /* returns when wifi is dead */
+            ESP_LOGW(TAG, "wifi lost");
+        }
+        first = false;
+        /* ---- ESP-NOW phase ---- */
+        espnow_start();
+        ESP_LOGW(TAG, "transport: espnow ch %d", ESPNOW_CHANNEL);
+        int dead = 0;
+        int64_t entered = esp_timer_get_time();
+        while (dead < ESPNOW_DEAD_CHUNKS &&
+               esp_timer_get_time() - entered < WIFI_RETRY_PERIOD_US) {
+            int idx;
+            if (xQueueReceive(s_full_q, &idx, pdMS_TO_TICKS(10000))
+                != pdTRUE)
+                continue;
+            bool ok = espnow_send_chunk(&s_ring[idx]);
+            xQueueSend(s_free_q, &idx, 0);
+            if (ok) {
+                mark_valid_once();
+                dead = 0;
+            } else {
+                dead++;
+            }
+        }
+        espnow_stop();
+        if (dead >= ESPNOW_DEAD_CHUNKS)
+            s_use_lr = !s_use_lr;   /* nothing ACKed all phase: try the
+                                     * other rate next time */
+        ESP_LOGW(TAG, "%s", dead >= ESPNOW_DEAD_CHUNKS
+                 ? "espnow dead: retrying wifi" : "periodic wifi retry");
+    }
+}
 
 void app_main(void)
 {
@@ -413,8 +615,17 @@ void app_main(void)
 
     wifi_start();
     mic_init();
+#if CONFIG_MIC_POWER_PROBE
     if (probe_pending())
         power_probe();
+#endif
+    unsigned m[6];
+    if (sscanf(CONFIG_MIC_BRIDGE_MAC, "%x:%x:%x:%x:%x:%x",
+               &m[0], &m[1], &m[2], &m[3], &m[4], &m[5]) == 6)
+        for (int i = 0; i < 6; i++)
+            s_bridge_mac[i] = m[i];
+
     xTaskCreatePinnedToCore(capture_task, "capture", 4096, NULL, 10, NULL, 1);
-    xTaskCreatePinnedToCore(upload_task, "upload", 8192, NULL, 5, NULL, 0);
+    xTaskCreatePinnedToCore(transport_task, "transport", 8192, NULL, 5,
+                            NULL, 0);
 }

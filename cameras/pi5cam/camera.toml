@@ -1,0 +1,16 @@
+# Camera manifest — see docs/camera_standard.md §6. Truth as of 2026-09-02.
+# Decision 2026-09-02: left as is until the device is on the bench; see README "Standard mapping".
+id = "pi5cam"             # no device id in use yet; the deployed unit is dusty.local
+board = "Raspberry Pi 5 / Pi Zero 2 W, CSI camera (IMX477/708/296 candidates)"
+runtime = "cpython"
+power = "always_on"
+status = "built"          # prototype: deployed unit runs tests/test_motion.py, uploads nothing
+sensors = []
+capabilities = ["motion", "preview"]
+# not yet: everything else in the standard (upload, telemetry, config, OTA, spool, setup_mode, tests as tests)
+
+[tuning]
+period_s = 1
+heartbeat_s = 300
+telemetry_s = 60
+setup_secs = 300
