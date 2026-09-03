@@ -1,8 +1,19 @@
 # openmv_n6 hardware
 
-No board-specific design work yet — the OpenMV N6 is used on its stock board.
+The board runs bare; the case is the only design work.
 
-## Enclosure: blocked on mechanical data
+## Case: [`case/`](case/) — 3-part printed case with a 1S LiPo bay
+
+Moved in from `~/cad/openmv-n6-case` on 2026-09-03 (designed 2026-08-12, rev
+B–D on 2026-09-02). Front cup, camera plate and back cup, parametric
+build123d in `case/caselib.py` with one `*.step.py` generator per part and
+`fitcheck.step.py` for the sectioned review assembly; STEP/STL outputs and
+`snap-*.png` renders sit beside them. `case/ref/` holds the N6 board model
+(`openmv-n6.py` / `.step`, measured from OpenMV's GLB) and `DIMENSIONS.md`,
+the frame every part is built in. Not printed yet. Regenerate with the
+`cad` skill; review with `cad-viewer`.
+
+## History: how the enclosure was unblocked
 
 **Update 2026-09-02: the mechanical data exists.** The N6 was measured from
 OpenMV's own GLB models on 2026-08-12 (`~/cad/openmv-n6/DIMENSIONS.md`), and

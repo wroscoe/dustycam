@@ -30,7 +30,7 @@ Low power is a setting, not a second file: `wifi_linger_s > 0` in
 | `software/host/` | Developer tools that need the board on USB or the LAN: `ota_push.py` (push fast path), `fb_webui.py` + `omv_patches.py` (IDE-protocol framebuffer viewer, [`docs/openmv_ide_protocol_v2.md`](../../docs/openmv_ide_protocol_v2.md)), `camera_stream.py`/`stream_server.py`, `bench_*.py`, `diag_backlog.py`. |
 | `software/legacy/` | The 1.x apps (`sensorhub_cam.py`, `sensorhub_cam_lp.py`), the app that was on the flash until 2026-09-03, the factory `main.py`, test scripts. Reference only. |
 | `tests/` | Host tests (`python -m pytest cameras/openmv_n6/tests`), no board needed. |
-| `hardware/` | Notes only; the board runs bare. The N6 reference model lives in [`../n6_speedcam/hardware/case/ref/`](../n6_speedcam/hardware/case/ref/). |
+| `hardware/case/` | 3-part printed case with a LiPo bay (build123d source, STEP/STL, renders) and the N6 board reference model in `case/ref/`. Unprinted. |
 
 ## Deploy
 

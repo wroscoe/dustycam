@@ -134,3 +134,6 @@ cameras/*/software/app/secrets.py
 __cadgen__/
 cameras/*/case/ref/*.glb
 cameras/*/hardware/case/ref/*.glb
+
+# CAD viewer caches (hidden GLB next to each STEP)
+.*.step.glb
