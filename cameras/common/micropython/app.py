@@ -88,6 +88,7 @@ def run(poll=lambda: None):
     st = {'sent': 0, 'skipped': 0, 'failed': 0, 'buffered': 0, 'seq': 0,
           'pending': pending_count() if sd else 0,
           'last_upload': 0, 'last_telemetry': 0, 'last_wifi': 0, 'last_config': 0,
+          'last_contact': 0, 'reqs_seen': 0, 'wifi_off': False,
           'setup_cfg_done': -1, 'next_why': 'boot'}    # why for the first frame with no reference
     t_boot = time.ticks_ms()
     print('boot %d  v%s  cfg %s  sd %s (%d pending)  tuning %s'
@@ -108,8 +109,11 @@ def run(poll=lambda: None):
         return vals
 
     def tick(force=False):
+        if CFG.get('wifi_linger_s', 0) and not wlan.isconnected():
+            return                            # radio off: telemetry rides the next contact window
         if force or time.time() - st['last_telemetry'] >= CFG['telemetry_s']:
             st['last_telemetry'] = time.time()
+            st['last_contact'] = time.time()
             vals = telemetry_vals()
             body = '{%s}' % ', '.join('"%s": %s' % kv for kv in vals.items())
             ok = post_json('/telemetry/%s' % secrets.DEVICE, body)
@@ -129,11 +133,28 @@ def run(poll=lambda: None):
                 time.sleep_ms(300)
         except OSError:
             pass
+        if wlan.isconnected():
+            st['wifi_off'] = False
+            st['last_contact'] = time.time()
         return wlan.isconnected()
+
+    def wifi_down():
+        """Rest stage, wifi_linger_s > 0: radio off until the next delivery,
+        heartbeat or button (the old low-power variant as a setting)."""
+        try:
+            wlan.disconnect()
+            wlan.active(False)
+        except OSError as e:
+            print('wifi: off failed', repr(e))
+            return
+        st['wifi_off'] = True
+        st['last_wifi'] = 0                   # next wifi_up() connects at once
+        print('wifi: off (linger %ds over)' % CFG['wifi_linger_s'])
 
     def refresh():
         """Serve stage: config pull, then firmware check (may reset)."""
         st['last_config'] = time.time()
+        st['last_contact'] = time.time()
         changed = cfg_pull(TUNING)
         fw_check(APP_VERSION)
         return changed
@@ -191,7 +212,10 @@ def run(poll=lambda: None):
                         st['last_upload'] = time.time()
             else:
                 st['last_upload'] = time.time()
+                st['last_contact'] = time.time()
                 fw_mark_valid()                              # a pending install proved itself
+                if CFG.get('wifi_linger_s', 0):
+                    tick()                                   # batched telemetry for this window
         finally:
             restore_preview()
         print('%s  %s %dx%d %dkB diff=%.4f  sent=%d skipped=%d failed=%d pending=%d' %
@@ -205,7 +229,7 @@ def run(poll=lambda: None):
         gate.reset()
         return ok
 
-    HOOKS.update({'tick': tick, 'shoot': shoot, 'refresh': refresh, 'sensors': sensors,
+    HOOKS.update({'tick': tick, 'shoot': shoot, 'refresh': refresh, 'sensors': sensors, 'wake': wifi_up,
                   'status': lambda: {'version': APP_VERSION, 'seq': st['seq'], 'sent': st['sent'],
                                      'pending': st['pending'], 'failed': st['failed'], 'sd': sd,
                                      'rolled_back': rolled_back or '', 'fw_pending': fw_pending(),
@@ -241,8 +265,9 @@ def run(poll=lambda: None):
                 st['skipped'] += 1
                 print('skip  diff=%.5f  sent=%d skipped=%d pending=%d' %
                       (frac, st['sent'], st['skipped'], st['pending']))
-            if time.time() - st['last_config'] >= CFG.get('config_s', CFG['heartbeat_s']):
-                refresh()
+            if (time.time() - st['last_config'] >= CFG.get('config_s', CFG['heartbeat_s'])
+                    and (wlan.isconnected() or not CFG.get('wifi_linger_s', 0))):
+                refresh()                      # with the radio cycling, only inside a contact window
             if CFG.get('mode') == 'setup' and st['setup_cfg_done'] != CFG.get('cfg'):
                 st['setup_cfg_done'] = CFG.get('cfg')
                 setup_session(None, CFG['setup_secs'], 'config')
@@ -263,5 +288,13 @@ def run(poll=lambda: None):
             if control_poll():
                 gate.reset()                   # scene/exposure changed: no false motion
                 st['last_upload'] = time.time()
+                st['last_contact'] = time.time()
                 t0 = time.ticks_ms()
+            linger = CFG.get('wifi_linger_s', 0)
+            if linger and wlan.isconnected():
+                if STATE.get('reqs', 0) != st['reqs_seen']:      # any control request extends the window
+                    st['reqs_seen'] = STATE.get('reqs', 0)
+                    st['last_contact'] = time.time()
+                if time.time() - st['last_contact'] >= linger:
+                    wifi_down()
             time.sleep_ms(100)

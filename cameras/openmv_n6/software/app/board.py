@@ -19,12 +19,12 @@ BATT_DIVIDER 1.5 is inferred, not measured: batt_v is indicative only.
 """
 import machine
 
-APP_VERSION = '2.0.1-n6'
+APP_VERSION = '2.0.10-n6'
 
 # --- tuning: stamped by tools/dustygen from camera.toml [tuning] overridden by
 # ~/.dusty/config.toml [camera.openmv_n6]; served at /config/n6cam and pulled
 # at runtime (config.py).
-TUNING = {'period_s': 10, 'diff_min_frac': 0.005, 'diff_l_thresh': 8, 'heartbeat_s': 300, 'telemetry_s': 60, 'capture_framesize': 'HD', 'capture_settle_ms': 400, 'setup_secs': 300}
+TUNING = {'period_s': 10, 'diff_min_frac': 0.005, 'diff_l_thresh': 8, 'heartbeat_s': 300, 'telemetry_s': 60, 'capture_framesize': 'HD', 'capture_settle_ms': 400, 'setup_secs': 240, 'wifi_linger_s': 0}
 # --- end tuning
 
 PREVIEW_FRAMESIZE = 'VGA'         # 640x400 on this sensor
@@ -51,7 +51,14 @@ def board_sensors():
     vals = {}
     if _bat_adc is not None:
         try:
-            raw = sum(_bat_adc.read_u16() for _ in range(8)) // 8
+            # BAT_ADC reads ~550 or the real value (~55000) in alternating bursts a
+            # few hundred ms long (the divider is switched under the ADC, REPL-verified
+            # 2026-09-03): take the max of samples spread over ~0.6 s.
+            import time
+            raw = 0
+            for _ in range(5):
+                raw = max(raw, _bat_adc.read_u16())
+                time.sleep_ms(120)
             vals['batt_v'] = round(raw / 65535 * 3.3 * BATT_DIVIDER, 3)
         except (OSError, ValueError):
             pass

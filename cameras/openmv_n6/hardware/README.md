@@ -38,9 +38,9 @@ Then the case is the same recipe as the ESP32-S3 pair: stand it on the
 connector edge, ports down, tripod insert on the back, and reuse
 `cameras/hardware_common/caseskit.py`.
 
-Worth noting for whoever does it: the low-power variant needs *"first boot
-near USB"* supervision, so convenient USB access matters more on this board,
-not less.
+Worth noting for whoever does it: a crashing build now rolls back and is
+blacklisted on its own, but `cpufreq` and the CSI hang list (see the README)
+still call for a first boot near USB, so keep the USB port reachable.
 
 See [`../../pi5cam/hardware/`](../../pi5cam/hardware/) for the conventions
 (design source in git, exports regenerated under `export/`).

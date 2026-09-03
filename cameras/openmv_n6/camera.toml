@@ -1,10 +1,10 @@
-# Camera manifest — see docs/camera_standard.md §6. Truth as of 2026-09-02.
+# Camera manifest — see docs/camera_standard.md §6. Truth as of 2026-09-03.
 id = "n6cam"
 board = "OpenMV N6 (STM32N657, firmware 5.0.0, MicroPython 1.28; legacy sensor API)"
 runtime = "micropython"
-power = "always_on"       # sensorhub_cam_lp.py = WiFi-off-between-deliveries variant; becomes a setting in phase 3
-status = "built"          # on the bench 2026-09-03 for the port to the standard (phase 3)
-sensors = ["battery", "charge", "imu_speed"]
+power = "always_on"       # wifi_linger_s > 0 in [tuning]/config.toml = the old low-power variant (radio off between contacts)
+status = "live"           # app 2.0.9-n6 on the shared runtime since 2026-09-03
+sensors = ["battery", "charge"]   # imu_speed of the 1.x app not carried over
 capabilities = ["preview", "focus_score", "motion", "full_res", "spool", "pull_config", "pull_firmware", "push_firmware", "setup_mode", "shoot"]
 [bundle]
 order = ["board.py", "common:uplink", "common:spool", "common:config", "common:otapull",
@@ -19,3 +19,4 @@ telemetry_s = 60
 capture_framesize = "HD"      # 1280x800 native; RGB565 + software JPEG (CAPTURE_MODE in board.py)
 capture_settle_ms = 400
 setup_secs = 300
+wifi_linger_s = 0             # >0: radio off between contacts, kept up this long after each (low-power); 0 = always on

@@ -17,6 +17,7 @@ The app wires HOOKS before control_init():
 """
 import gc
 import socket
+import sys
 import time
 
 import machine
@@ -152,6 +153,8 @@ def _accept():
 
 
 def _j(v):
+    if v is None:
+        return 'null'
     if isinstance(v, bool):
         return 'true' if v else 'false'
     if isinstance(v, (int, float)):
@@ -160,7 +163,10 @@ def _j(v):
         return '{%s}' % ', '.join('"%s": %s' % (k, _j(x)) for k, x in v.items())
     if isinstance(v, (list, tuple)):
         return '[%s]' % ', '.join(_j(x) for x in v)
-    return '"%s"' % v
+    s = str(v)
+    for old, new in (('\\', '\\\\'), ('"', '\\"'), ('\n', '\\n'), ('\r', '\\r'), ('\t', '\\t')):
+        s = s.replace(old, new)
+    return '"%s"' % s
 
 
 def status_dict():
@@ -319,6 +325,11 @@ def setup_session(conn, secs, trigger):
     last_refresh = time.time()
     frames = 0
     print('setup: start (%s, %ds)' % (trigger, secs))
+    if 'wake' in HOOKS:
+        try:
+            HOOKS['wake']()                 # radio may be off (wifi_linger_s)
+        except Exception as e:
+            print('setup: wake failed', repr(e))
     _led_set(True)
     try:
         restore_preview()
@@ -384,6 +395,7 @@ def setup_session(conn, secs, trigger):
     except Exception as e:
         STATE['last_end'] = 'error ' + repr(e)
         print('setup: session error', repr(e))
+        sys.print_exception(e)
     finally:
         if conn:
             try:

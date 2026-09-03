@@ -51,7 +51,7 @@ def test_spool_name_is_unique_per_second():
 
 def test_status_json_encoder():
     j = control._j({'a': 1, 'b': 2.5, 'c': True, 'd': 'x', 'e': [1, 'y'], 'f': {'g': None}})
-    assert j == '{"a": 1, "b": 2.5, "c": true, "d": "x", "e": [1, "y"], "f": {"g": "None"}}'
+    assert j == '{"a": 1, "b": 2.5, "c": true, "d": "x", "e": [1, "y"], "f": {"g": null}}'
 
 
 def test_setup_page_has_watchdog_and_no_token():

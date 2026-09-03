@@ -19,3 +19,4 @@ telemetry_s = 60
 capture_framesize = "WQXGA2"
 capture_settle_ms = 400
 setup_secs = 300          # config.toml may still call it focus_secs; dustygen maps it
+wifi_linger_s = 0             # >0: radio off between contacts, kept up this long after each (low-power); 0 = always on

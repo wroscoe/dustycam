@@ -8,7 +8,7 @@ Tailscale Funnel), telemetry over the same gate, config and firmware pulled
 from sensorhub, a setup mode with a phone page, one control port.
 Board serial `e606fe64d7090732`, firmware 4.8.1 (MicroPython 1.26).
 
-**Status: live** (app 2.0.4-rt, 2026-09-03), reporting as `rt1062cam`:
+**Status: live** (app 2.0.8-rt, 2026-09-03), reporting as `rt1062cam`:
 http://192.168.86.26:8088/d/rt1062cam. No SD card is inserted, so the
 spool is inactive (`sd: false` in `/status`); frames that fail to upload
 are counted in `failed` and lost.
@@ -95,9 +95,9 @@ the button, closing the page (30 s grace), or the config flipping back.
 Recording pauses; telemetry continues only while no viewer is attached (a
 TLS publish blocks the stream for seconds); on exit the motion reference is
 reset and one confirmation frame is delivered. The score is the stdev of a
-x4 Laplacian over the boxed centre ROI: scene-dependent, so focus in
-daylight and judge by the peak (a soft lens read 16 at midday, 4 at dusk,
-0 at night).
+x4 Laplacian over the boxed centre ROI, computed from the histogram (fw 5.x
+statistics are whole numbers): scene-dependent, so focus in daylight and
+judge by the peak (a soft lens read 16 at midday, 4 at dusk, 0 at night).
 
 ## Standard mapping (docs/camera_standard.md, 2026-09-03)
 
@@ -114,7 +114,7 @@ daylight and judge by the peak (a soft lens read 16 at midday, 4 at dusk,
 | Deliver | blob gate, TLS on the Funnel; spool + streamed drain when a card is present (none today) |
 | Report | `/telemetry` every `telemetry_s`: uptime, mem_free, boot_count, counters, diff stats, mode, cfg, charging, rssi |
 | Serve | one port; config pull + firmware pull every `heartbeat_s` and on refresh; push OTA kept |
-| Rest | idle loop keeps the preview fresh and polls the control port every 100 ms |
+| Rest | idle loop keeps the preview fresh and polls the control port every 100 ms; `wifi_linger_s` (0 here) can cycle the radio |
 | Setup mode | as above; `why: manual` for shoot and the confirmation frame |
 | Tests | `tests/test_rt1062_app.py` (meta keys, why vocabulary, tuning keys) + `cameras/common/tests` |
 
@@ -137,4 +137,7 @@ spool and drain (no SD card), a full day of heartbeats on 2.x.
   `rt1062cam/#`, and a rejected QoS-0 publish is dropped silently. The gate
   publishes as `ingest`.
 - `get_statistics().l_stdev()` on grayscale is integer-valued (hence the x4
-  Laplacian in the focus score).
+  Laplacian and the histogram stdev in the focus score).
+- `draw_string(x, y, txt)` takes bare ints here; the tuple form the N6's
+  5.x firmware needs raises `ValueError: requested length 3`. `focus.py`
+  handles both.

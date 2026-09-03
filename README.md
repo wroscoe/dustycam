@@ -85,7 +85,7 @@ and fill it in from `~/.dusty/`:
 |---|---|---|
 | `cameras/openmv_rt1062/software/app/secrets.py` | `tools/dustygen cameras/openmv_rt1062 [--public] [--stage]` | MicroPython, USB copy to `/flash`; the same run stamps tuning, publishes the server config and bundles/stages the app (camera standard §5) |
 | `cameras/esp32_s3_cam/software/camlogger/sdkconfig.secrets` | hand-filled from `~/.dusty` (dustygen espidf: TODO, phase 4) | compiled into ESP-IDF firmware |
-| `cameras/openmv_n6/software/secrets.py` | `secrets_example.py` (dustygen: phase 3) | MicroPython, copied to `/flash`
+| `cameras/openmv_n6/software/app/secrets.py` | `tools/dustygen cameras/openmv_n6` | MicroPython, copied to `/flash`
 
 Give each board only the credentials it uses — the ESP32 has no MQTT client,
 so it has no business holding the MQTT password.

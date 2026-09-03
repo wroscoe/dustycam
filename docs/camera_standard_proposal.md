@@ -451,4 +451,6 @@ days.
 5. **esp32_s3_cam:** camlogger (GOOUUU) only; the MicroPython logger and persondet_app move to `archive/` in phase 4; fix the Docker build path first.
 6. **Sensors:** cameras now, sensors later. The standard is written device-generic (Watch/Capture/Judge optional) so the sensors directory can follow once the recipe is proven.
 
+Phases 1–3 done 2026-09-03: gate GET proxies; `cameras/common/micropython/` + `tools/dustygen`; RT1062 (2.0.8-rt) and N6 (2.0.9-n6) both on the shared runtime with config pull, pull OTA and rollback proven on each; the N6 low-power variant became the `wifi_linger_s` setting. Left for the N6: button check, battery divider, a day of heartbeats.
+
 Phase 0 was done the same day: `docs/camera_standard.md`, `docs/camera_recipe.md`, `camera.toml` in every camera, "Standard mapping" README sections, the IDE protocol doc renamed, the empty `dusty/` directory removed.

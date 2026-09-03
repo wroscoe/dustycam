@@ -77,7 +77,10 @@ Then loop:
    wake-cycle board it happens once per contact, right after a successful
    upload. Nothing may block the control plane for more than a few seconds.
 9. **Rest.** Always-on boards idle until the next period, keeping the
-   preview stream fresh. Wake-cycle boards persist state (last thumbnail,
+   preview stream fresh; with `wifi_linger_s > 0` they also drop the radio
+   that long after the last contact and bring it back for the next
+   delivery, heartbeat or button (the control plane is reachable only
+   inside those windows). Wake-cycle boards persist state (last thumbnail,
    counters, config) and deep-sleep until the next wake or sensor interrupt.
 
 ### The laws
@@ -244,6 +247,7 @@ diff_min_frac = 0.04
 heartbeat_s = 300
 telemetry_s = 60
 setup_secs = 300
+wifi_linger_s = 0              # >0: radio off between contacts (low power)
 ```
 
 Shared code: `cameras/common/<runtime>/`.
