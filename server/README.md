@@ -15,5 +15,5 @@ here — it runs on the camera as a pipeline sink, and is part of the camera's
 runtime rather than a separate service.
 
 Existing per-camera ingest endpoints that may inform this:
-`cameras/esp32_s3_cam/software/server/pump_server.py` and
+`cameras/esp32_s3_cam/archive/server/pump_server.py` (superseded by `~/code/sensorhub/pump`) and
 `cameras/esp32_s3_cam/software/tools/server.py`.

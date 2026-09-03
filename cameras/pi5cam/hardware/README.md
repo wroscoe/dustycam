@@ -19,7 +19,7 @@ Core build (see [`../../../docs/pi5_build_guide.md`](../../../docs/pi5_build_gui
 
 | Part | Notes |
 |---|---|
-| Raspberry Pi 5 | Pi Zero 2 W variant: see `docs/pi_zero_build_guide.md` |
+| Raspberry Pi 5 | Pi Zero 2 W variant: no guide written yet |
 | Raspberry Pi Camera | HQ (IMX477) recommended; Module 3 and Global Shutter also supported — see [`optics/`](optics/) for the tradeoffs |
 | C/CS-mount lens | Focal length depends on target distance — compute with `optics/fov.py` |
 | microSD card | 16 GB+ |

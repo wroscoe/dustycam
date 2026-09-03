@@ -29,10 +29,11 @@ from pi5cam.nodes.sinks.web import WebSink
 `create_source()` auto-selects Picamera2 on a Pi and OpenCV elsewhere, so the
 same graph runs on a desktop for development.
 
-Install from the repo root, which holds the `pyproject.toml`:
+Install from this directory (it holds the `pyproject.toml`; the repo root is
+not a Python package):
 
 ```bash
-pip install -e ".[pi]"    # base + picamera2
+pip install -e "cameras/pi5cam[pi]"    # from the repo root: base + picamera2
 ```
 
 Or provision a fresh Pi end to end:
@@ -68,8 +69,11 @@ must not be touched blind. When the Pi is plugged in, do this, in order:
    existing `WebSink` MJPEG preview plus the focus score, on `:8266`, with the
    dashboard's unauthenticated `/api/restart` removed.
 4. Detection: `YoloNode._load_tflite_model()` is a stub that raises; the TFLite
-   exports at the repo root (`yolov8n_saved_model/*.tflite`) are the intended
-   Pi path. Implement or mark Judge not applicable.
+   exports that used to sit at the repo root now live on homegpu at
+   `/hd2/models/dustycam/yolov8n/` (`yolov8n_saved_model/*.tflite` plus the
+   calibration `.npy`; `scripts/export_yolo.py` regenerates them). Copy what
+   the Pi needs with `scp`/`rsync`; models stay out of git. Implement or
+   mark Judge not applicable.
 5. Move `~/.dusty` generation onto `dustygen` (an `.env` for the service);
    register the device in `devices.json` with `expect`.
 6. Fix the path split (`/opt/dusty/env` venv, `~/dustycam` checkout, unit

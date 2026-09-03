@@ -39,7 +39,7 @@ Homepage = "https://www.dustycam.com"
 
 [tool.setuptools.packages.find]
 # Each camera under cameras/ owns its software package.
-where = ["cameras/pi5cam/software"]
+where = ["software"]
 include = ["pi5cam*"]
 exclude = ["data*"]
 # Required: pyproject's find defaults to namespaces=true, which would otherwise

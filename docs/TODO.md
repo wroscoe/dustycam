@@ -1,3 +1,7 @@
+> **Historical (2026-09-03):** the July plan for the OpenLPR / TrailCam node
+> pipeline that became `cameras/pi5cam/software/pi5cam/`. Superseded by
+> `camera_standard.md`; kept for the phase names the pi5cam code refers to.
+
 This document serves as the architectural blueprint for the OpenLPR / TrailCam Pipeline Project. It outlines the core design decisions required to balance ease of development (Desktop) with high-efficiency deployment (Raspberry Pi).
 
 1. Project Vision

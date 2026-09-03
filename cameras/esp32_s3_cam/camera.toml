@@ -1,6 +1,6 @@
 # Camera manifest — see docs/camera_standard.md §6. Truth as of 2026-09-02.
 # Decision 2026-09-02: this directory becomes the GOOUUU camlogger camera only;
-# the MicroPython logger and persondet_app (Waveshare board) move to archive/ in phase 4.
+# the MicroPython logger and persondet_app (Waveshare board) were moved to archive/ on 2026-09-03.
 id = "goouuu1"
 board = "GOOUUU ESP32-S3-CAM (OV2640, 8 MB PSRAM), ESP-IDF 5.5"
 runtime = "espidf"

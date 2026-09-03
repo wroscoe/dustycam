@@ -42,8 +42,8 @@ fi
 cd ~/
 # Check if directory exists before cloning to avoid error if re-running
 if [ ! -d "dustycam" ]; then
-    git clone git@github.com:owlmoshpit/dustycam.git
+    git clone https://github.com/wroscoe/dustycam.git
 fi
 cd dustycam
-# Install base + Pi deps
-pip install -e ".[pi]"
+# Install the pi5cam package + Pi deps (the repo root is not a package)
+pip install -e "cameras/pi5cam[pi]"

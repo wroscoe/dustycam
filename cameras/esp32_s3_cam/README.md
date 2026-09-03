@@ -1,38 +1,42 @@
 # esp32_s3_cam
 
-Microcontroller-class camera: a **Waveshare ESP32-S3-CAM**. Two firmware
-tracks live here — a MicroPython capture/uplink logger, and an ESP-IDF
-person-detection app running a quantized TFLite-micro model on-device.
+Microcontroller-class wake-cycle camera: a **GOOUUU ESP32-S3-CAM** (OV2640,
+8 MB PSRAM) running the ESP-IDF **camlogger** firmware — thumbnail motion
+diff in RTC memory, a TFLite-micro animal gate on-device, deep sleep between
+wakes, pull config and pull OTA with bootloader rollback. Device id
+`goouuu1`.
 
-Moved in from `~/code/wavesharecam_sandbox`. Bring-up lessons (the USB-cable
-trap, esptool v5 bug, board identification order) are in
-[`../../docs/esp32_s3_cam_lessons.md`](../../docs/esp32_s3_cam_lessons.md) —
-read that before touching a new board.
+**Status: built, silent since 2026-08-18.** The Docker build path in
+`software/camlogger/Makefile` no longer matches the repo layout; fixing it
+is the first step of phase 4 (see "Standard mapping"). Bring-up lessons
+(the USB-cable trap, esptool v5 bug, board identification order) are in
+sarg: `sarg ask "ESP32-S3-CAM <symptom>"`.
+
+Two earlier tracks on the **Waveshare ESP32-S3-CAM** — a MicroPython
+capture/uplink logger and an ESP-IDF person-detection app — were archived
+on 2026-09-03 under `archive/` (moved as-is from `software/`, nothing
+rewritten). The Waveshare board itself now runs the basement pump listener
+in `~/code/sensorhub/pump`.
 
 ## Layout
 
 | Path | Contents |
 |---|---|
-| `software/src/` | MicroPython modules deployed to board flash: `main.py` (safe-mode autostart shim), `app.py`, `boardcam.py`, `uplink.py`, `storage.py`. |
-| `software/tools/` | Host-side tooling: `mp` (mpremote wrapper), `findport.py`, `monitor.py`, `server.py` (image ingest), `autolabel.py`, `train.py`. |
-| `software/persondet_app/` | ESP-IDF person-detection application (`build/` excluded — regenerate with `idf.py`). |
-| `software/classify/` | Host-side day-classification / fingerprinting scripts. |
-| `software/server/` | `pump_server.py` — the ingest endpoint. |
-| `software/Makefile` | The whole workflow; `make help` lists targets. |
-| `tests/` | Host-side unit tests (no board needed). |
-| `hardware/` | Empty — no board-specific design work yet. |
+| `camera.toml` | Manifest (id `goouuu1`, runtime espidf, power wake_cycle). |
+| `software/camlogger/` | The firmware (ESP-IDF 5.5): `main/`, `Makefile` (Docker build, `ota-deploy`), `sdkconfig.defaults`, `sdkconfig.secrets` (gitignored, hand-filled from `~/.dusty`). |
+| `software/tools/` | Host-side tooling: `findport.py`, `monitor.py`, `mp` (mpremote wrapper), `server.py` (image collection), `autolabel.py` + `train.py` (the YOLO-teacher / tiny-student loop over `/hd2/datasets/wavesharecam/`). |
+| `software/classify/` | Host-side day-classification / fingerprinting scripts over the dataset. |
+| `hardware/` | Case CAD for the GOOUUU board (`case/`) and pin facts. |
+| `tests/` | Host tests — empty since the archive; the brightness test went with the MicroPython logger. |
+| `archive/` | Waveshare-era code: `src/` (MicroPython logger), `persondet_app/` (ESP-IDF person detection), `wavecam_firmware/` (binaries), `server/pump_server.py`, the old `Makefile` and one-off scripts, `tests/test_brightness.py`. Reference only; nothing here is deployed. |
 
 ## Workflow
 
 ```bash
-cd software
-make setup            # venv + tools
-make test             # host-side unit tests, no board
-make dev              # deploy src/ to flash + run (the edit loop)
-make server           # image collection server
-make autolabel        # YOLO teacher labels dataset samples  (containerized)
-make train            # fine-tune the tiny person model      (containerized)
-make ota-deploy       # build detector firmware, publish for OTA
+cd software/camlogger
+make build            # ESP-IDF build in Docker (path fix pending — phase 4)
+make flash            # first flash over native USB-JTAG
+make ota-deploy       # build + stage in /hd2/sensorhub/firmware/ for pull OTA
 ```
 
 ## Data and credentials
@@ -46,22 +50,17 @@ override:
 DATASET_ROOT=/somewhere/else make train
 ```
 
-Copy `software/src/secrets_example.py` to `software/src/secrets.py` and fill
-it in; the ESP-IDF app reads `software/persondet_app/sdkconfig.secrets`. Both
-are gitignored, as is the generated `sdkconfig`. Keep the master values in
-`~/.dusty/` — see the [repo README](../../README.md).
-
-`make deploy` copies `src/secrets.py` to flash if it exists. Note
-`boot_cam.py` starts WebREPL only when `WEBREPL_PASS` is set, so an
-incomplete secrets.py silently leaves WebREPL off.
+The firmware reads `software/camlogger/sdkconfig.secrets` (WiFi, server);
+it and the generated `sdkconfig` are gitignored. Fill it from `~/.dusty/`
+by hand until `dustygen` learns the espidf runtime (phase 4).
 
 ## Standard mapping (docs/camera_standard.md, 2026-09-02)
 
-Decision 2026-09-02: this directory becomes the GOOUUU **camlogger** camera
-only; the MicroPython logger (`software/src/`) and `persondet_app/` move to
-`archive/` in phase 4, Waveshare pin facts stay in `hardware/`. The Docker
-build path in `camlogger/Makefile` no longer matches this repo layout and
-must be fixed first. Silent since 2026-08-18.
+Decision 2026-09-02: this directory is the GOOUUU **camlogger** camera
+only. The MicroPython logger and `persondet_app/` were moved to `archive/`
+on 2026-09-03; Waveshare pin facts stay in `hardware/`. The Docker build
+path in `camlogger/Makefile` no longer matches this repo layout and must be
+fixed first. Silent since 2026-08-18.
 
 | Stage / feature | Today (camlogger) | Gap |
 |---|---|---|
